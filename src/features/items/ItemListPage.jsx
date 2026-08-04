@@ -1,0 +1,185 @@
+import React, { useState, useMemo } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { Box, Typography, Button, TextField, MenuItem, IconButton, Chip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Paper } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
+import { alpha, useTheme } from '@mui/material/styles';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon } from '@mui/icons-material';
+import { motion } from 'framer-motion';
+import { formatCurrency } from '../../utils/helpers';
+import { mockCategories } from '../../services/mockData';
+import { deleteItem, setSelectedItem } from './itemsSlice';
+import ItemFormDialog from './ItemFormDialog';
+import { useSnackbar } from 'notistack';
+
+const ItemListPage = () => {
+  const theme = useTheme();
+  const dispatch = useDispatch();
+  const { enqueueSnackbar } = useSnackbar();
+  const { items } = useSelector(state => state.items);
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [formOpen, setFormOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            item.code.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+  }, [items, searchTerm, categoryFilter]);
+
+  const handleEdit = (item) => {
+    dispatch(setSelectedItem(item));
+    setFormOpen(true);
+  };
+
+  const handleDeleteClick = (item) => {
+    setItemToDelete(item);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (itemToDelete) {
+      dispatch(deleteItem(itemToDelete.id));
+      enqueueSnackbar('Item deleted successfully', { variant: 'success' });
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
+    }
+  };
+
+  const columns = [
+    { field: 'code', headerName: 'Code', width: 100 },
+    { field: 'name', headerName: 'Name', flex: 1, minWidth: 200 },
+    { field: 'category', headerName: 'Category', width: 130 },
+    { field: 'brand', headerName: 'Brand', width: 130 },
+    { field: 'unit', headerName: 'Unit', width: 80 },
+    { field: 'hsn', headerName: 'HSN', width: 100 },
+    { field: 'gstRate', headerName: 'GST %', width: 90 },
+    { 
+      field: 'currentStock', 
+      headerName: 'Stock', 
+      width: 120,
+      renderCell: (params) => {
+        const { currentStock, reorderLevel } = params.row;
+        let color = 'default';
+        if (currentStock <= reorderLevel) {
+          color = 'error';
+        } else if (currentStock <= reorderLevel * 1.5) {
+          color = 'warning';
+        }
+        return (
+          <Chip 
+            label={currentStock} 
+            color={color} 
+            variant="outlined" 
+            size="small" 
+            sx={{ fontWeight: 'bold' }}
+          />
+        );
+      }
+    },
+    { 
+      field: 'unitPrice', 
+      headerName: 'Price', 
+      width: 120,
+      renderCell: (params) => formatCurrency(params.value)
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 120,
+      sortable: false,
+      renderCell: (params) => (
+        <Box>
+          <IconButton size="small" onClick={() => handleEdit(params.row)} color="primary">
+            <EditIcon fontSize="small" />
+          </IconButton>
+          <IconButton size="small" onClick={() => handleDeleteClick(params.row)} color="error">
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      )
+    }
+  ];
+
+  return (
+    <Box component={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#00BFA6' }}>Item Master</Typography>
+          <Typography variant="subtitle1" color="text.secondary">Total Items: {items.length}</Typography>
+        </Box>
+        <Button 
+          variant="contained" 
+          startIcon={<AddIcon />} 
+          onClick={() => { dispatch(setSelectedItem(null)); setFormOpen(true); }}
+          sx={{ bgcolor: '#00BFA6', '&:hover': { bgcolor: alpha('#00BFA6', 0.8) } }}
+        >
+          Add Item
+        </Button>
+      </Box>
+
+      <Paper sx={{ p: 2, mb: 2, bgcolor: '#132F4C', borderRadius: 2, display: 'flex', gap: 2 }}>
+        <TextField
+          placeholder="Search by code or name..."
+          variant="outlined"
+          size="small"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{ startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} /> }}
+          sx={{ flexGrow: 1, '& .MuiOutlinedInput-root': { bgcolor: alpha('#0A1929', 0.5) } }}
+        />
+        <TextField
+          select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          variant="outlined"
+          size="small"
+          sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { bgcolor: alpha('#0A1929', 0.5) } }}
+        >
+          <MenuItem value="All">All Categories</MenuItem>
+          {mockCategories.map(cat => (
+            <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+          ))}
+        </TextField>
+      </Paper>
+
+      <Box sx={{ flexGrow: 1, bgcolor: '#132F4C', borderRadius: 2, overflow: 'hidden' }}>
+        <DataGrid
+          rows={filteredItems}
+          columns={columns}
+          initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+          pageSizeOptions={[10, 25, 50]}
+          disableRowSelectionOnClick
+          sx={{
+            border: 'none',
+            '& .MuiDataGrid-cell': { borderColor: alpha('#fff', 0.1) },
+            '& .MuiDataGrid-columnHeaders': { bgcolor: alpha('#0A1929', 0.8), borderColor: alpha('#fff', 0.1) },
+            '& .MuiDataGrid-footerContainer': { borderColor: alpha('#fff', 0.1) }
+          }}
+        />
+      </Box>
+
+      <ItemFormDialog open={formOpen} onClose={() => setFormOpen(false)} />
+
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} PaperProps={{ sx: { bgcolor: '#132F4C', color: '#fff' } }}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: 'text.secondary' }}>
+            Are you sure you want to delete {itemToDelete?.name}? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ color: 'text.secondary' }}>Cancel</Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">Delete</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default ItemListPage;
