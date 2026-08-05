@@ -19,8 +19,6 @@ import {
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import * as XLSX from "xlsx";
-import { jsPDF } from "jspdf";
-import "jspdf-autotable";
 import {
   mockPurchaseOrders,
   mockItems,
@@ -213,38 +211,72 @@ const ReportViewPage = () => {
   };
 
   // Export to PDF
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text(reportTitle, 14, 20);
-    doc.setFontSize(10);
-    doc.text(
-      `Generated on: ${new Date().toLocaleDateString()} | Smart Inventory System`,
-      14,
-      27,
-    );
+  const handleExportPDF = async () => {
+    try {
+      // Ensure jspdf and autotable are available in runtime (addresses bundler/esm issues)
+      // eslint-disable-next-line no-unused-vars
+      const jspdfModule = await import("jspdf");
+      await import("jspdf-autotable");
 
-    const pdfHeaders = columns.map((col) => col.headerName);
-    const pdfRows = rows.map((r) =>
-      columns.map((col) => {
-        const val = r[col.field];
-        if (val === undefined || val === null) return "";
-        if (typeof val === "object") return JSON.stringify(val);
-        return String(val);
-      }),
-    );
+      const { jsPDF: JSPDF } = jspdfModule;
+      const doc = new JSPDF();
+      doc.setFontSize(16);
+      doc.text(reportTitle, 14, 20);
+      doc.setFontSize(10);
+      doc.text(
+        `Generated on: ${new Date().toLocaleDateString()} | Smart Inventory System`,
+        14,
+        27,
+      );
 
-    doc.autoTable({
-      head: [pdfHeaders],
-      body: pdfRows,
-      startY: 32,
-      theme: "grid",
-      headStyles: { fillColor: [0, 191, 166] },
-      styles: { fontSize: 8 },
-    });
+      const pdfHeaders = columns.map((col) => col.headerName);
+      const pdfRows = rows.map((r) =>
+        columns.map((col) => {
+          const val = r[col.field];
+          if (val === undefined || val === null) return "";
+          if (typeof val === "object") return JSON.stringify(val);
+          return String(val);
+        }),
+      );
 
-    const dateSuffix = new Date().toISOString().split("T")[0];
-    doc.save(`${reportType}_report_${dateSuffix}.pdf`);
+      // jspdf-autotable v5 exports a function; call it with the doc instance.
+      const autoTableModule = await import("jspdf-autotable");
+      const autoTable = autoTableModule?.default || autoTableModule;
+
+      if (typeof autoTable === "function") {
+        autoTable(doc, {
+          head: [pdfHeaders],
+          body: pdfRows,
+          startY: 32,
+          theme: "grid",
+          headStyles: { fillColor: [0, 191, 166] },
+          styles: { fontSize: 8 },
+        });
+      } else if (typeof doc.autoTable === "function") {
+        doc.autoTable({
+          head: [pdfHeaders],
+          body: pdfRows,
+          startY: 32,
+          theme: "grid",
+          headStyles: { fillColor: [0, 191, 166] },
+          styles: { fontSize: 8 },
+        });
+      } else {
+        throw new Error("jspdf-autotable plugin not found or incompatible");
+      }
+      const dateSuffix = new Date().toISOString().split("T")[0];
+      doc.save(`${reportType}_report_${dateSuffix}.pdf`);
+    } catch (err) {
+      // graceful fallback/log with more detail
+      // eslint-disable-next-line no-console
+      console.error(
+        "Export to PDF failed:",
+        err && err.stack ? err.stack : err,
+      );
+      alert(
+        `Export to PDF failed — see console for details.\n${err?.message || ""}`,
+      );
+    }
   };
 
   return (
