@@ -1,29 +1,68 @@
--- =========================================
--- SMART INVENTORY - INTERN 3
--- ASSET / ISSUE / RETURN MODULE
--- =========================================
-
--- 1. ASSETS
--- Stores all company assets
-
-CREATE TABLE IF NOT EXISTS assets (
+CREATE TABLE issue_returns (
     id INT AUTO_INCREMENT PRIMARY KEY,
 
-    asset_code VARCHAR(50) NOT NULL UNIQUE,
+    item_id INT NOT NULL,
+
+    issued_to VARCHAR(150) NOT NULL,
+
+    quantity INT NOT NULL,
+
+    issue_date DATE NOT NULL,
+
+    return_date DATE NULL,
+
+    transaction_type ENUM('ISSUE', 'RETURN') NOT NULL,
+
+    status ENUM('ISSUED', 'PARTIAL_RETURN', 'RETURNED')
+        DEFAULT 'ISSUED',
+
+    remarks VARCHAR(500) NULL,
+
+    parent_issue_id INT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (parent_issue_id)
+        REFERENCES issue_returns(id)
+        ON DELETE SET NULL
+);
+
+
+CREATE TABLE assets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    asset_code VARCHAR(100) NOT NULL UNIQUE,
 
     asset_name VARCHAR(150) NOT NULL,
 
-    asset_type VARCHAR(100) NOT NULL,
+    category VARCHAR(100),
 
-    serial_number VARCHAR(100) UNIQUE,
+    item_id INT NULL,
+
+    serial_number VARCHAR(150) UNIQUE,
+
+    purchase_date DATE NULL,
+
+    purchase_cost DECIMAL(12,2) DEFAULT 0,
+
+    assigned_to VARCHAR(150) NULL,
+
+    assigned_department VARCHAR(150) NULL,
+
+    location VARCHAR(200) NULL,
 
     status ENUM(
         'AVAILABLE',
-        'ISSUED',
-        'DAMAGED'
+        'ASSIGNED',
+        'UNDER_MAINTENANCE',
+        'DAMAGED',
+        'DISPOSED'
     ) DEFAULT 'AVAILABLE',
 
-    purchase_date DATE,
+    description VARCHAR(500) NULL,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -32,78 +71,55 @@ CREATE TABLE IF NOT EXISTS assets (
 );
 
 
--- 2. ASSET ASSIGNMENTS
--- Stores which employee currently has which asset
 
-CREATE TABLE IF NOT EXISTS asset_assignments (
+
+CREATE TABLE asset_assignments (
     id INT AUTO_INCREMENT PRIMARY KEY,
 
     asset_id INT NOT NULL,
 
-    user_id INT NOT NULL,
+    assigned_to VARCHAR(150) NOT NULL,
+
+    department VARCHAR(150),
+
+    location VARCHAR(200),
 
     assigned_date DATE NOT NULL,
 
     returned_date DATE NULL,
 
+    status ENUM('ASSIGNED', 'RETURNED')
+        DEFAULT 'ASSIGNED',
+
+    remarks VARCHAR(500),
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (asset_id)
+        REFERENCES assets(id)
+        ON DELETE CASCADE
+);
+
+
+
+CREATE TABLE asset_maintenance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    asset_id INT NOT NULL,
+
+    maintenance_date DATE NOT NULL,
+
+    maintenance_type VARCHAR(150),
+
+    description VARCHAR(500),
+
+    cost DECIMAL(12,2) DEFAULT 0,
+
     status ENUM(
-        'ACTIVE',
-        'RETURNED'
-    ) DEFAULT 'ACTIVE',
-
-    notes VARCHAR(255),
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (asset_id)
-        REFERENCES assets(id)
-        ON DELETE CASCADE
-);
-
-
--- 3. ISSUE TRANSACTIONS
--- Stores asset issue history
-
-CREATE TABLE IF NOT EXISTS issue_transactions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-
-    asset_id INT NOT NULL,
-
-    user_id INT NOT NULL,
-
-    issue_date DATE NOT NULL,
-
-    expected_return_date DATE NULL,
-
-    issue_condition VARCHAR(255),
-
-    notes VARCHAR(255),
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (asset_id)
-        REFERENCES assets(id)
-        ON DELETE CASCADE
-);
-
-
--- 4. RETURN TRANSACTIONS
--- Stores asset return history
-
-CREATE TABLE IF NOT EXISTS return_transactions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-
-    asset_id INT NOT NULL,
-
-    user_id INT NOT NULL,
-
-    return_date DATE NOT NULL,
-
-    return_condition VARCHAR(255),
-
-    damage_description VARCHAR(255),
-
-    notes VARCHAR(255),
+        'PENDING',
+        'IN_PROGRESS',
+        'COMPLETED'
+    ) DEFAULT 'PENDING',
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

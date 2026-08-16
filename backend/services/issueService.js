@@ -1,5 +1,6 @@
 import { pool } from "../config/db.js";
 
+
 const createIssue = async ({
   asset_id,
   user_id,
@@ -8,9 +9,11 @@ const createIssue = async ({
   issue_condition,
   notes,
 }) => {
+
   const connection = await pool.getConnection();
 
   try {
+
     await connection.beginTransaction();
 
     // Check asset
@@ -90,16 +93,21 @@ const createIssue = async ({
       issue_condition: issue_condition || null,
       notes: notes || null,
     };
+
   } catch (error) {
+
     await connection.rollback();
     throw error;
+
   } finally {
+
     connection.release();
   }
 };
 
 
 const getAllIssues = async () => {
+
   const [rows] = await pool.execute(`
     SELECT
       it.id,
@@ -123,6 +131,7 @@ const getAllIssues = async () => {
 
 
 const getIssueById = async (id) => {
+
   const [rows] = await pool.execute(
     `
     SELECT

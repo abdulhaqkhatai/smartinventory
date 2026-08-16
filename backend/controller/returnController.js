@@ -7,6 +7,7 @@ import {
 
 const createReturnController = async (req, res) => {
   try {
+
     const {
       asset_id,
       user_id,
@@ -39,6 +40,7 @@ const createReturnController = async (req, res) => {
     });
 
   } catch (error) {
+
     console.error("Create return error:", error.message);
 
     return res.status(400).json({
@@ -51,6 +53,7 @@ const createReturnController = async (req, res) => {
 
 const getAllReturnsController = async (req, res) => {
   try {
+
     const returns = await getAllReturns();
 
     return res.status(200).json({
@@ -60,6 +63,7 @@ const getAllReturnsController = async (req, res) => {
     });
 
   } catch (error) {
+
     console.error("Get returns error:", error.message);
 
     return res.status(500).json({
@@ -72,6 +76,7 @@ const getAllReturnsController = async (req, res) => {
 
 const getReturnByIdController = async (req, res) => {
   try {
+
     const { id } = req.params;
 
     const result = await getReturnById(id);
@@ -82,6 +87,7 @@ const getReturnByIdController = async (req, res) => {
     });
 
   } catch (error) {
+
     console.error("Get return error:", error.message);
 
     return res.status(404).json({
