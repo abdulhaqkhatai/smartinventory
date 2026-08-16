@@ -9,15 +9,15 @@ import {
 const router = express.Router();
 
 
-// POST /api/issues
+// CREATE ISSUE
 router.post("/", createIssueController);
 
 
-// GET /api/issues
+// GET ALL ISSUES
 router.get("/", getAllIssuesController);
 
 
-// GET /api/issues/:id
+// GET ISSUE BY ID
 router.get("/:id", getIssueByIdController);
 
 

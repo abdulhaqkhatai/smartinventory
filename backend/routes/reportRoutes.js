@@ -1,34 +1,43 @@
 import express from "express";
 
 import {
-  getDashboardReportController,
-  getAssetStatusReportController,
-  getIssueReportController,
-  getReturnReportController,
-  getDamagedAssetReportController,
+    dashboardReport,
+    assetStatusReport,
+    issueReport,
+    returnReport,
+    damagedAssetReport
 } from "../controllers/reportController.js";
 
 const router = express.Router();
 
+// ==========================================
+// DASHBOARD REPORT
+// ==========================================
 
-// Dashboard
-router.get("/dashboard", getDashboardReportController);
+router.get("/dashboard", dashboardReport);
 
+// ==========================================
+// ASSET STATUS REPORT
+// ==========================================
 
-// Asset status
-router.get("/assets/status", getAssetStatusReportController);
+router.get("/asset-status", assetStatusReport);
 
+// ==========================================
+// ISSUE REPORT
+// ==========================================
 
-// Issues
-router.get("/issues", getIssueReportController);
+router.get("/issues", issueReport);
 
+// ==========================================
+// RETURN REPORT
+// ==========================================
 
-// Returns
-router.get("/returns", getReturnReportController);
+router.get("/returns", returnReport);
 
+// ==========================================
+// DAMAGED ASSET REPORT
+// ==========================================
 
-// Damaged assets
-router.get("/assets/damaged", getDamagedAssetReportController);
-
+router.get("/damaged-assets", damagedAssetReport);
 
 export default router;

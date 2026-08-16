@@ -1,15 +1,14 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { mockIssueTransactions, mockReturnTransactions } from '../../services/mockData';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  issues: [...mockIssueTransactions],
-  returns: [...mockReturnTransactions],
+  issues: [],
+  returns: [],
   loading: false,
   error: null,
 };
 
 const issueReturnSlice = createSlice({
-  name: 'issueReturn',
+  name: "issueReturn",
   initialState,
   reducers: {
     setIssues: (state, action) => {
@@ -27,5 +26,6 @@ const issueReturnSlice = createSlice({
   },
 });
 
-export const { setIssues, setReturns, addIssue, addReturn } = issueReturnSlice.actions;
+export const { setIssues, setReturns, addIssue, addReturn } =
+  issueReturnSlice.actions;
 export default issueReturnSlice.reducer;
