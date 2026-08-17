@@ -29,7 +29,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
 
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -45,14 +45,12 @@ const LoginPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    dispatch(performLogin(email, password));
+    dispatch(performLogin(username, password));
   };
 
   const demoAccounts = [
-    { role: 'Admin', email: 'admin@smartinv.com' },
-    { role: 'Store Manager', email: 'store@smartinv.com' },
-    { role: 'Purchase Manager', email: 'purchase@smartinv.com' },
-    { role: 'Employee', email: 'employee@smartinv.com' },
+    { role: 'Admin', username: 'admin' },
+    { role: 'User', username: 'user1' },
   ];
 
   return (
@@ -173,10 +171,10 @@ const LoginPage = () => {
             <Box component="form" onSubmit={handleSubmit}>
               <TextField
                 fullWidth
-                label="Email Address"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                label="Username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
                 sx={{ mb: 2 }}
                 InputProps={{
@@ -186,7 +184,7 @@ const LoginPage = () => {
                     </InputAdornment>
                   ),
                 }}
-                placeholder="admin@smartinv.com"
+                placeholder="admin"
               />
               <TextField
                 fullWidth
@@ -248,12 +246,12 @@ const LoginPage = () => {
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, justifyContent: 'center' }}>
                 {demoAccounts.map((account) => (
                   <Chip
-                    key={account.email}
+                    key={account.username}
                     label={account.role}
                     size="small"
                     variant="outlined"
                     onClick={() => {
-                      setEmail(account.email);
+                      setUsername(account.username);
                       setPassword('admin123');
                     }}
                     sx={{

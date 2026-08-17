@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { mockUsers } from '../../services/mockData';
+import api from '../../services/api';
 
 const storedUser = (() => {
   try {
@@ -28,10 +28,10 @@ const authSlice = createSlice({
     loginSuccess: (state, action) => {
       state.loading = false;
       state.isAuthenticated = true;
-      state.user = action.payload;
+      state.user = action.payload.user;
       state.error = null;
-      localStorage.setItem('user', JSON.stringify(action.payload));
-      localStorage.setItem('authToken', 'mock-jwt-token-' + action.payload.id);
+      localStorage.setItem('user', JSON.stringify(action.payload.user));
+      localStorage.setItem('authToken', action.payload.token);
     },
     loginFailure: (state, action) => {
       state.loading = false;
@@ -55,19 +55,20 @@ const authSlice = createSlice({
   },
 });
 
-// Mock login action
-export const performLogin = (email, password) => (dispatch) => {
+// API login action
+export const performLogin = (username, password) => async (dispatch) => {
   dispatch(loginStart());
-  
-  // Simulate API call
-  setTimeout(() => {
-    const user = mockUsers.find((u) => u.email === email);
-    if (user && password === 'admin123') {
-      dispatch(loginSuccess(user));
-    } else {
-      dispatch(loginFailure('Invalid email or password'));
-    }
-  }, 800);
+
+  try {
+    const response = await api.post('/auth/login', {
+      username,
+      password,
+    });
+
+    dispatch(loginSuccess(response));
+  } catch (error) {
+    dispatch(loginFailure(error.message || 'Login failed'));
+  }
 };
 
 export const { loginStart, loginSuccess, loginFailure, logout, clearError, updateProfile } = authSlice.actions;
