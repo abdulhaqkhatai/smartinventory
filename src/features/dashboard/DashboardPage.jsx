@@ -53,6 +53,7 @@ import api from '../../services/api';
 import {
   mockChartData,
   mockRecentTransactions,
+  mockDashboardStats,
 } from '../../services/mockData';
 import { formatCurrency, formatDate, getStatusColor } from '../../utils/helpers';
 
@@ -487,7 +488,7 @@ const DashboardPage = () => {
                     Monthly Purchase Value
                   </Typography>
                   <Typography variant="h5" fontWeight={700} color="primary.main" sx={{ mt: 0.5 }}>
-                    {formatCurrency(mockDashboardStats.monthlyPurchaseValue)}
+                    {formatCurrency(dashboardStats.monthlyPurchaseValue ?? mockDashboardStats?.monthlyPurchaseValue ?? 0)}
                   </Typography>
                   <Chip
                     label="+12.5% vs last month"
