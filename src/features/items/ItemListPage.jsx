@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Box, Typography, Button, TextField, MenuItem, IconButton, Chip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Paper } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
@@ -7,7 +7,7 @@ import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Search as Searc
 import { motion } from 'framer-motion';
 import { formatCurrency } from '../../utils/helpers';
 import { mockCategories } from '../../services/mockData';
-import { deleteItem, setSelectedItem } from './itemsSlice';
+import { deleteItemAsync, setSelectedItem, fetchItems, clearError } from './itemsSlice';
 import ItemFormDialog from './ItemFormDialog';
 import { useSnackbar } from 'notistack';
 
@@ -15,18 +15,28 @@ const ItemListPage = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
-  const { items } = useSelector(state => state.items);
-  
+  const { items, loading, error } = useSelector(state => state.items);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
+  useEffect(() => {
+    dispatch(fetchItems());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (error) {
+      enqueueSnackbar(error, { variant: 'error' });
+      dispatch(clearError());
+    }
+  }, [error, dispatch, enqueueSnackbar]);
+
   const filteredItems = useMemo(() => {
     return items.filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            item.code.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
       return matchesSearch && matchesCategory;
     });
@@ -44,7 +54,7 @@ const ItemListPage = () => {
 
   const handleConfirmDelete = () => {
     if (itemToDelete) {
-      dispatch(deleteItem(itemToDelete.id));
+      dispatch(deleteItemAsync(itemToDelete.id));
       enqueueSnackbar('Item deleted successfully', { variant: 'success' });
       setDeleteDialogOpen(false);
       setItemToDelete(null);
@@ -59,9 +69,9 @@ const ItemListPage = () => {
     { field: 'unit', headerName: 'Unit', width: 80 },
     { field: 'hsn', headerName: 'HSN', width: 100 },
     { field: 'gstRate', headerName: 'GST %', width: 90 },
-    { 
-      field: 'currentStock', 
-      headerName: 'Stock', 
+    {
+      field: 'currentStock',
+      headerName: 'Stock',
       width: 120,
       renderCell: (params) => {
         const { currentStock, reorderLevel } = params.row;
@@ -72,19 +82,19 @@ const ItemListPage = () => {
           color = 'warning';
         }
         return (
-          <Chip 
-            label={currentStock} 
-            color={color} 
-            variant="outlined" 
-            size="small" 
+          <Chip
+            label={currentStock}
+            color={color}
+            variant="outlined"
+            size="small"
             sx={{ fontWeight: 'bold' }}
           />
         );
       }
     },
-    { 
-      field: 'unitPrice', 
-      headerName: 'Price', 
+    {
+      field: 'unitPrice',
+      headerName: 'Price',
       width: 120,
       renderCell: (params) => formatCurrency(params.value)
     },
@@ -113,9 +123,9 @@ const ItemListPage = () => {
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#00BFA6' }}>Item Master</Typography>
           <Typography variant="subtitle1" color="text.secondary">Total Items: {items.length}</Typography>
         </Box>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />} 
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => { dispatch(setSelectedItem(null)); setFormOpen(true); }}
           sx={{ bgcolor: '#00BFA6', '&:hover': { bgcolor: alpha('#00BFA6', 0.8) } }}
         >

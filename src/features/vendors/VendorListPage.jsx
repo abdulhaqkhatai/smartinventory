@@ -1,29 +1,39 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Box, Typography, Button, TextField, IconButton, Chip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Paper, Tabs, Tab, Rating } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { alpha } from '@mui/material/styles';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { deleteVendor, setSelectedVendor } from './vendorsSlice';
+import { deleteVendorAsync, setSelectedVendor, fetchVendors, clearError } from './vendorsSlice';
 import VendorFormDialog from './VendorFormDialog';
 import { useSnackbar } from 'notistack';
 
 const VendorListPage = () => {
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
-  const { vendors } = useSelector(state => state.vendors);
-  
+  const { vendors, loading, error } = useSelector(state => state.vendors);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [vendorToDelete, setVendorToDelete] = useState(null);
 
+  useEffect(() => {
+    dispatch(fetchVendors());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (error) {
+      enqueueSnackbar(error, { variant: 'error' });
+      dispatch(clearError());
+    }
+  }, [error, dispatch, enqueueSnackbar]);
+
   const filteredVendors = useMemo(() => {
     return vendors.filter(v => {
-      const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            v.code.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'All' || v.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -41,7 +51,7 @@ const VendorListPage = () => {
 
   const handleConfirmDelete = () => {
     if (vendorToDelete) {
-      dispatch(deleteVendor(vendorToDelete.id));
+      dispatch(deleteVendorAsync(vendorToDelete.id));
       enqueueSnackbar('Vendor deleted successfully', { variant: 'success' });
       setDeleteDialogOpen(false);
       setVendorToDelete(null);
@@ -49,30 +59,29 @@ const VendorListPage = () => {
   };
 
   const getStatusColor = (status) => {
-    switch(status) {
-      case 'Active': return 'success';
-      case 'Inactive': return 'warning';
-      case 'Blacklisted': return 'error';
+    switch (status) {
+      case 'active': return 'success';
+      case 'inactive': return 'warning';
+      case 'blacklisted': return 'error';
       default: return 'default';
     }
   };
 
   const columns = [
-    { field: 'code', headerName: 'Code', width: 100 },
     { field: 'name', headerName: 'Name', flex: 1, minWidth: 200 },
-    { field: 'contactPerson', headerName: 'Contact Person', width: 150 },
+    { field: 'contact_person', headerName: 'Contact Person', width: 150 },
     { field: 'phone', headerName: 'Phone', width: 130 },
-    { field: 'gstNo', headerName: 'GST No', width: 140 },
-    { 
-      field: 'status', 
-      headerName: 'Status', 
+    { field: 'gst_number', headerName: 'GST No', width: 140 },
+    {
+      field: 'status',
+      headerName: 'Status',
       width: 120,
       renderCell: (params) => (
-        <Chip 
-          label={params.value} 
-          color={getStatusColor(params.value)} 
-          size="small" 
-          variant="outlined" 
+        <Chip
+          label={params.value}
+          color={getStatusColor(params.value)}
+          size="small"
+          variant="outlined"
         />
       )
     },
@@ -110,9 +119,9 @@ const VendorListPage = () => {
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#00BFA6' }}>Vendor Management</Typography>
           <Typography variant="subtitle1" color="text.secondary">Total Vendors: {vendors.length}</Typography>
         </Box>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />} 
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => { dispatch(setSelectedVendor(null)); setFormOpen(true); }}
           sx={{ bgcolor: '#00BFA6', '&:hover': { bgcolor: alpha('#00BFA6', 0.8) } }}
         >

@@ -5,65 +5,80 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useSnackbar } from 'notistack';
-import { addVendor, updateVendor } from './vendorsSlice';
-import { generateId } from '../../utils/helpers';
+import { createVendor, updateVendorAsync, setSelectedVendor } from './vendorsSlice';
 import { alpha } from '@mui/material/styles';
 
 const schema = yup.object().shape({
   name: yup.string().required('Vendor name is required'),
   status: yup.string().required('Status is required'),
-  contactPerson: yup.string().required('Contact person is required'),
+  contact_person: yup.string().required('Contact person is required'),
   phone: yup.string().required('Phone number is required'),
-  email: yup.string().email('Invalid email').required('Email is required'),
-  address: yup.string().required('Address is required'),
-  gstNo: yup.string().matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GST format (e.g. 22AAAAA0000A1Z5)'),
-  pan: yup.string().matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN format'),
-  bankName: yup.string(),
-  accountNo: yup.string(),
-  ifscCode: yup.string(),
+  email: yup.string().email('Invalid email'),
+  address: yup.string(),
+  gst_number: yup.string(),
+  pan_number: yup.string(),
+  bank_name: yup.string(),
+  bank_account: yup.string(),
+  bank_ifsc: yup.string(),
+  city: yup.string(),
+  state: yup.string(),
+  pincode: yup.string(),
 });
 
 const VendorFormDialog = ({ open, onClose }) => {
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
-  const { selectedVendor } = useSelector(state => state.vendors);
+  const { selectedVendor, loading } = useSelector(state => state.vendors);
   const isEdit = Boolean(selectedVendor);
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      name: '', status: 'Active', contactPerson: '', phone: '', email: '', address: '',
-      gstNo: '', pan: '', bankName: '', accountNo: '', ifscCode: ''
+      name: '', status: 'active', contact_person: '', phone: '', email: '', address: '', city: '', state: '', pincode: '',
+      gst_number: '', pan_number: '', bank_name: '', bank_account: '', bank_ifsc: ''
     }
   });
 
   useEffect(() => {
     if (selectedVendor && open) {
-      reset({ ...selectedVendor });
+      reset({
+        name: selectedVendor.name,
+        status: selectedVendor.status,
+        contact_person: selectedVendor.contact_person,
+        phone: selectedVendor.phone,
+        email: selectedVendor.email,
+        address: selectedVendor.address,
+        city: selectedVendor.city,
+        state: selectedVendor.state,
+        pincode: selectedVendor.pincode,
+        gst_number: selectedVendor.gst_number,
+        pan_number: selectedVendor.pan_number,
+        bank_name: selectedVendor.bank_name,
+        bank_account: selectedVendor.bank_account,
+        bank_ifsc: selectedVendor.bank_ifsc,
+      });
     } else if (open) {
       reset({
-        name: '', status: 'Active', contactPerson: '', phone: '', email: '', address: '',
-        gstNo: '', pan: '', bankName: '', accountNo: '', ifscCode: ''
+        name: '', status: 'active', contact_person: '', phone: '', email: '', address: '', city: '', state: '', pincode: '',
+        gst_number: '', pan_number: '', bank_name: '', bank_account: '', bank_ifsc: ''
       });
     }
   }, [selectedVendor, open, reset]);
 
-  const onSubmit = (data) => {
-    if (isEdit) {
-      dispatch(updateVendor({ ...selectedVendor, ...data }));
-      enqueueSnackbar('Vendor updated successfully', { variant: 'success' });
-    } else {
-      const newVendor = {
-        id: generateId(),
-        code: `VEN${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-        rating: 0,
-        totalOrders: 0,
-        ...data,
-      };
-      dispatch(addVendor(newVendor));
-      enqueueSnackbar('Vendor added successfully', { variant: 'success' });
+  const onSubmit = async (data) => {
+    try {
+      if (isEdit) {
+        await dispatch(updateVendorAsync({ id: selectedVendor.id, vendorData: data })).unwrap();
+        enqueueSnackbar('Vendor updated successfully', { variant: 'success' });
+      } else {
+        await dispatch(createVendor(data)).unwrap();
+        enqueueSnackbar('Vendor added successfully', { variant: 'success' });
+      }
+      dispatch(setSelectedVendor(null));
+      onClose();
+    } catch (error) {
+      enqueueSnackbar(error || 'Failed to save vendor', { variant: 'error' });
     }
-    onClose();
   };
 
   const SectionHeader = ({ title }) => (
@@ -89,15 +104,15 @@ const VendorFormDialog = ({ open, onClose }) => {
             <Grid item xs={12} sm={4}>
               <Controller name="status" control={control} render={({ field }) => (
                 <TextField {...field} select label="Status" fullWidth error={!!errors.status} helperText={errors.status?.message}>
-                  {['Active', 'Inactive', 'Blacklisted'].map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+                  {['active', 'inactive', 'blacklisted'].map(s => <MenuItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</MenuItem>)}
                 </TextField>
               )} />
             </Grid>
 
             <SectionHeader title="Contact Information" />
             <Grid item xs={12} sm={6}>
-              <Controller name="contactPerson" control={control} render={({ field }) => (
-                <TextField {...field} label="Contact Person" fullWidth error={!!errors.contactPerson} helperText={errors.contactPerson?.message} />
+              <Controller name="contact_person" control={control} render={({ field }) => (
+                <TextField {...field} label="Contact Person" fullWidth error={!!errors.contact_person} helperText={errors.contact_person?.message} />
               )} />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -105,50 +120,67 @@ const VendorFormDialog = ({ open, onClose }) => {
                 <TextField {...field} label="Phone Number" fullWidth error={!!errors.phone} helperText={errors.phone?.message} />
               )} />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <Controller name="email" control={control} render={({ field }) => (
                 <TextField {...field} label="Email Address" type="email" fullWidth error={!!errors.email} helperText={errors.email?.message} />
               )} />
             </Grid>
             <Grid item xs={12}>
               <Controller name="address" control={control} render={({ field }) => (
-                <TextField {...field} label="Address" multiline rows={3} fullWidth error={!!errors.address} helperText={errors.address?.message} />
+                <TextField {...field} label="Address" multiline rows={2} fullWidth error={!!errors.address} helperText={errors.address?.message} />
+              )} />
+            </Grid>
+
+            <SectionHeader title="Location" />
+            <Grid item xs={12} sm={4}>
+              <Controller name="city" control={control} render={({ field }) => (
+                <TextField {...field} label="City" fullWidth error={!!errors.city} helperText={errors.city?.message} />
+              )} />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Controller name="state" control={control} render={({ field }) => (
+                <TextField {...field} label="State" fullWidth error={!!errors.state} helperText={errors.state?.message} />
+              )} />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Controller name="pincode" control={control} render={({ field }) => (
+                <TextField {...field} label="Pincode" fullWidth error={!!errors.pincode} helperText={errors.pincode?.message} />
               )} />
             </Grid>
 
             <SectionHeader title="Tax Information" />
             <Grid item xs={12} sm={6}>
-              <Controller name="gstNo" control={control} render={({ field }) => (
-                <TextField {...field} label="GST Number" fullWidth error={!!errors.gstNo} helperText={errors.gstNo?.message} />
+              <Controller name="gst_number" control={control} render={({ field }) => (
+                <TextField {...field} label="GST Number" fullWidth error={!!errors.gst_number} helperText={errors.gst_number?.message} />
               )} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <Controller name="pan" control={control} render={({ field }) => (
-                <TextField {...field} label="PAN" fullWidth error={!!errors.pan} helperText={errors.pan?.message} />
+              <Controller name="pan_number" control={control} render={({ field }) => (
+                <TextField {...field} label="PAN" fullWidth error={!!errors.pan_number} helperText={errors.pan_number?.message} />
               )} />
             </Grid>
 
             <SectionHeader title="Bank Details" />
             <Grid item xs={12} sm={4}>
-              <Controller name="bankName" control={control} render={({ field }) => (
-                <TextField {...field} label="Bank Name" fullWidth error={!!errors.bankName} helperText={errors.bankName?.message} />
+              <Controller name="bank_name" control={control} render={({ field }) => (
+                <TextField {...field} label="Bank Name" fullWidth error={!!errors.bank_name} helperText={errors.bank_name?.message} />
               )} />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Controller name="accountNo" control={control} render={({ field }) => (
-                <TextField {...field} label="Account Number" fullWidth error={!!errors.accountNo} helperText={errors.accountNo?.message} />
+              <Controller name="bank_account" control={control} render={({ field }) => (
+                <TextField {...field} label="Account Number" fullWidth error={!!errors.bank_account} helperText={errors.bank_account?.message} />
               )} />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Controller name="ifscCode" control={control} render={({ field }) => (
-                <TextField {...field} label="IFSC Code" fullWidth error={!!errors.ifscCode} helperText={errors.ifscCode?.message} />
+              <Controller name="bank_ifsc" control={control} render={({ field }) => (
+                <TextField {...field} label="IFSC Code" fullWidth error={!!errors.bank_ifsc} helperText={errors.bank_ifsc?.message} />
               )} />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions sx={{ p: 2, borderTop: `1px solid ${alpha('#fff', 0.1)}` }}>
-          <Button onClick={onClose} sx={{ color: 'text.secondary' }}>Cancel</Button>
-          <Button type="submit" variant="contained" sx={{ bgcolor: '#00BFA6', '&:hover': { bgcolor: alpha('#00BFA6', 0.8) } }}>
+          <Button onClick={onClose} sx={{ color: 'text.secondary' }} disabled={loading}>Cancel</Button>
+          <Button type="submit" variant="contained" sx={{ bgcolor: '#00BFA6', '&:hover': { bgcolor: alpha('#00BFA6', 0.8) } }} disabled={loading}>
             {isEdit ? 'Update Vendor' : 'Add Vendor'}
           </Button>
         </DialogActions>

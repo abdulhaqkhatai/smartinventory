@@ -1,8 +1,56 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { mockVendors } from '../../services/mockData';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import api from '../../services/api';
+
+export const fetchVendors = createAsyncThunk(
+  'vendors/fetchVendors',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/vendors');
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const createVendor = createAsyncThunk(
+  'vendors/createVendor',
+  async (vendorData, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/vendors', vendorData);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const updateVendorAsync = createAsyncThunk(
+  'vendors/updateVendor',
+  async ({ id, vendorData }, { rejectWithValue }) => {
+    try {
+      await api.put(`/vendors/${id}`, vendorData);
+      return { id, ...vendorData };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const deleteVendorAsync = createAsyncThunk(
+  'vendors/deleteVendor',
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.delete(`/vendors/${id}`);
+      return id;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
 
 const initialState = {
-  vendors: [...mockVendors],
+  vendors: [],
   loading: false,
   error: null,
   selectedVendor: null,
@@ -12,33 +60,69 @@ const vendorsSlice = createSlice({
   name: 'vendors',
   initialState,
   reducers: {
-    setVendors: (state, action) => {
-      state.vendors = action.payload;
-    },
-    addVendor: (state, action) => {
-      state.vendors.push(action.payload);
-    },
-    updateVendor: (state, action) => {
-      const index = state.vendors.findIndex(v => v.id === action.payload.id);
-      if (index !== -1) {
-        state.vendors[index] = action.payload;
-      }
-    },
-    deleteVendor: (state, action) => {
-      state.vendors = state.vendors.filter(v => v.id !== action.payload);
-    },
     setSelectedVendor: (state, action) => {
       state.selectedVendor = action.payload;
-    }
-  }
+    },
+    clearError: (state) => {
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchVendors.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchVendors.fulfilled, (state, action) => {
+        state.loading = false;
+        state.vendors = action.payload;
+      })
+      .addCase(fetchVendors.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(createVendor.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createVendor.fulfilled, (state, action) => {
+        state.loading = false;
+        state.vendors.push(action.payload);
+      })
+      .addCase(createVendor.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(updateVendorAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateVendorAsync.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.vendors.findIndex(v => v.id === action.payload.id);
+        if (index !== -1) {
+          state.vendors[index] = action.payload;
+        }
+      })
+      .addCase(updateVendorAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(deleteVendorAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteVendorAsync.fulfilled, (state, action) => {
+        state.loading = false;
+        state.vendors = state.vendors.filter(v => v.id !== action.payload);
+      })
+      .addCase(deleteVendorAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+  },
 });
 
-export const {
-  setVendors,
-  addVendor,
-  updateVendor,
-  deleteVendor,
-  setSelectedVendor
-} = vendorsSlice.actions;
+export const { setSelectedVendor, clearError } = vendorsSlice.actions;
 
 export default vendorsSlice.reducer;
