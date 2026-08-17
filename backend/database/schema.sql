@@ -4,13 +4,17 @@ CREATE TABLE IF NOT EXISTS assets (
     asset_name VARCHAR(255) NOT NULL,
     category VARCHAR(100),
     serial_number VARCHAR(255),
+    purchase_date DATE,
+    purchase_price DECIMAL(12,2),
     location VARCHAR(255),
     status ENUM(
         'AVAILABLE',
         'ISSUED',
         'DAMAGED'
     ) NOT NULL DEFAULT 'AVAILABLE',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS issue_transactions (
@@ -21,6 +25,8 @@ CREATE TABLE IF NOT EXISTS issue_transactions (
     expected_return_date DATETIME,
     issue_condition VARCHAR(255),
     notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_issue_asset
         FOREIGN KEY (asset_id)
@@ -37,6 +43,8 @@ CREATE TABLE IF NOT EXISTS return_transactions (
     return_condition VARCHAR(255),
     damage_description TEXT,
     notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_return_asset
         FOREIGN KEY (asset_id)
@@ -44,3 +52,32 @@ CREATE TABLE IF NOT EXISTS return_transactions (
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS asset_assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    asset_id INT NOT NULL,
+    user_id INT NOT NULL,
+    status ENUM('ACTIVE', 'RETURNED') NOT NULL DEFAULT 'ACTIVE',
+    assigned_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    returned_date DATETIME NULL,
+
+    CONSTRAINT fk_assignment_asset
+        FOREIGN KEY (asset_id)
+        REFERENCES assets(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+ALTER TABLE assets
+  ADD COLUMN IF NOT EXISTS purchase_date DATE,
+  ADD COLUMN IF NOT EXISTS purchase_price DECIMAL(12,2),
+  ADD COLUMN IF NOT EXISTS description TEXT,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+ALTER TABLE issue_transactions
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+ALTER TABLE return_transactions
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;

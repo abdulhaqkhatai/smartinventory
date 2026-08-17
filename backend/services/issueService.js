@@ -1,41 +1,30 @@
 import { pool } from "../config/db.js";
 
+// ==========================================
+// CREATE ISSUE
+// ==========================================
 
-const createIssue = async ({
-  asset_id,
-  user_id,
-  issue_date,
-  expected_return_date,
-  issue_condition,
-  notes,
-}) => {
+const createIssue = async (issueData) => {
+  const {
+    asset_id,
+    user_id,
+    issue_date,
+    expected_return_date,
+    issue_condition,
+    notes,
+  } = issueData;
 
-  const connection = await pool.getConnection();
+  const [assetRows] = await pool.execute(`SELECT id FROM assets WHERE id = ?`, [
+    asset_id,
+  ]);
 
-  try {
+  if (assetRows.length === 0) {
+    throw new Error(`Asset with id ${asset_id} does not exist`);
+  }
 
-    await connection.beginTransaction();
-
-    // Check asset
-    const [assets] = await connection.execute(
-      `SELECT id, status
-       FROM assets
-       WHERE id = ?`,
-      [asset_id]
-    );
-
-    if (assets.length === 0) {
-      throw new Error("Asset not found");
-    }
-
-    // Asset must be available
-    if (assets[0].status !== "AVAILABLE") {
-      throw new Error("Asset is not available");
-    }
-
-    // Create issue transaction
-    const [issueResult] = await connection.execute(
-      `INSERT INTO issue_transactions
+  const [result] = await pool.execute(
+    `
+      INSERT INTO issue_transactions
       (
         asset_id,
         user_id,
@@ -44,70 +33,44 @@ const createIssue = async ({
         issue_condition,
         notes
       )
-      VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        asset_id,
-        user_id,
-        issue_date,
-        expected_return_date || null,
-        issue_condition || null,
-        notes || null,
-      ]
-    );
-
-    // Create assignment
-    await connection.execute(
-      `INSERT INTO asset_assignments
-      (
-        asset_id,
-        user_id,
-        assigned_date,
-        status,
-        notes
-      )
-      VALUES (?, ?, ?, 'ACTIVE', ?)`,
-      [
-        asset_id,
-        user_id,
-        issue_date,
-        notes || null,
-      ]
-    );
-
-    // Update asset status
-    await connection.execute(
-      `UPDATE assets
-       SET status = 'ISSUED'
-       WHERE id = ?`,
-      [asset_id]
-    );
-
-    await connection.commit();
-
-    return {
-      id: issueResult.insertId,
+      VALUES (?, ?, ?, ?, ?, ?)
+    `,
+    [
       asset_id,
       user_id,
-      issue_date,
-      expected_return_date: expected_return_date || null,
-      issue_condition: issue_condition || null,
-      notes: notes || null,
-    };
+      issue_date || null,
+      expected_return_date || null,
+      issue_condition || null,
+      notes || null,
+    ],
+  );
 
-  } catch (error) {
+  // Asset status update
+  await pool.execute(
+    `
+      UPDATE assets
+      SET status = 'ISSUED'
+      WHERE id = ?
+    `,
+    [asset_id],
+  );
 
-    await connection.rollback();
-    throw error;
-
-  } finally {
-
-    connection.release();
-  }
+  return {
+    id: result.insertId,
+    asset_id,
+    user_id,
+    issue_date,
+    expected_return_date,
+    issue_condition,
+    notes,
+  };
 };
 
+// ==========================================
+// GET ALL ISSUES
+// ==========================================
 
 const getAllIssues = async () => {
-
   const [rows] = await pool.execute(`
     SELECT
       it.id,
@@ -118,51 +81,42 @@ const getAllIssues = async () => {
       it.issue_date,
       it.expected_return_date,
       it.issue_condition,
-      it.notes,
-      it.created_at
+      it.notes
     FROM issue_transactions it
     INNER JOIN assets a
       ON it.asset_id = a.id
-    ORDER BY it.id DESC
+    ORDER BY it.issue_date DESC
   `);
 
   return rows;
 };
 
+// ==========================================
+// GET ISSUE BY ID
+// ==========================================
 
 const getIssueById = async (id) => {
-
   const [rows] = await pool.execute(
     `
-    SELECT
-      it.id,
-      it.asset_id,
-      a.asset_code,
-      a.asset_name,
-      it.user_id,
-      it.issue_date,
-      it.expected_return_date,
-      it.issue_condition,
-      it.notes,
-      it.created_at
-    FROM issue_transactions it
-    INNER JOIN assets a
-      ON it.asset_id = a.id
-    WHERE it.id = ?
+      SELECT
+        it.id,
+        it.asset_id,
+        a.asset_code,
+        a.asset_name,
+        it.user_id,
+        it.issue_date,
+        it.expected_return_date,
+        it.issue_condition,
+        it.notes
+      FROM issue_transactions it
+      INNER JOIN assets a
+        ON it.asset_id = a.id
+      WHERE it.id = ?
     `,
-    [id]
+    [id],
   );
-
-  if (rows.length === 0) {
-    throw new Error("Issue transaction not found");
-  }
 
   return rows[0];
 };
 
-
-export {
-  createIssue,
-  getAllIssues,
-  getIssueById,
-};
+export { createIssue, getAllIssues, getIssueById };

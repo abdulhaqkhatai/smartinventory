@@ -1,15 +1,14 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { mockAssets } from '../../services/mockData';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  assets: [...mockAssets],
+  assets: [],
   loading: false,
   error: null,
   selectedAsset: null,
 };
 
 const assetsSlice = createSlice({
-  name: 'assets',
+  name: "assets",
   initialState,
   reducers: {
     setAssets: (state, action) => {
@@ -35,7 +34,7 @@ const assetsSlice = createSlice({
         asset.assignedTo = assignedTo;
         asset.department = department;
         asset.location = location;
-        asset.status = 'in-use';
+        asset.status = "in-use";
       }
     },
     unassignAsset: (state, action) => {
@@ -43,7 +42,7 @@ const assetsSlice = createSlice({
       if (asset) {
         asset.assignedTo = null;
         asset.department = null;
-        asset.status = 'available';
+        asset.status = "available";
       }
     },
   },

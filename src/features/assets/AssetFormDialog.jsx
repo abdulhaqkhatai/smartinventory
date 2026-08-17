@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useEffect } from "react";
+import { useDispatch } from "react-redux";
 import {
   Dialog,
   DialogTitle,
@@ -9,26 +9,28 @@ import {
   TextField,
   Grid,
   MenuItem,
-  Typography,
-} from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { useSnackbar } from 'notistack';
-import { mockVendors } from '../../services/mockData';
-import { generateId } from '../../utils/helpers';
-import { addAsset, updateAsset } from './assetsSlice';
+} from "@mui/material";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { useSnackbar } from "notistack";
+import api from "../../services/api";
+import { addAsset, updateAsset } from "./assetsSlice";
 
 const schema = yup.object({
-  name: yup.string().required('Asset name is required'),
-  type: yup.string().required('Type is required'),
-  serialNo: yup.string().required('Serial number is required'),
-  purchaseDate: yup.string().required('Purchase date is required'),
-  warrantyExpiry: yup.string().required('Warranty expiry is required'),
-  cost: yup.number().typeError('Cost must be a number').positive('Must be positive').required('Cost is required'),
-  vendor: yup.string().required('Vendor is required'),
-  location: yup.string().required('Location is required'),
-  condition: yup.string().required('Condition is required'),
+  name: yup.string().required("Asset name is required"),
+  type: yup.string().required("Type is required"),
+  serialNo: yup.string().required("Serial number is required"),
+  purchaseDate: yup.string().required("Purchase date is required"),
+  warrantyExpiry: yup.string().required("Warranty expiry is required"),
+  cost: yup
+    .number()
+    .typeError("Cost must be a number")
+    .positive("Must be positive")
+    .required("Cost is required"),
+  vendor: yup.string().required("Vendor is required"),
+  location: yup.string().required("Location is required"),
+  condition: yup.string().required("Condition is required"),
 });
 
 const AssetFormDialog = ({ open, onClose, asset = null }) => {
@@ -43,15 +45,15 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      name: '',
-      type: 'Laptop',
-      serialNo: '',
-      purchaseDate: new Date().toISOString().split('T')[0],
-      warrantyExpiry: '',
+      name: "",
+      type: "Laptop",
+      serialNo: "",
+      purchaseDate: new Date().toISOString().split("T")[0],
+      warrantyExpiry: "",
       cost: 50000,
-      vendor: mockVendors[0]?.name || '',
-      location: 'Building A, Floor 1',
-      condition: 'Good',
+      vendor: "",
+      location: "Building A, Floor 1",
+      condition: "Good",
     },
   });
 
@@ -60,41 +62,93 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
       reset(asset);
     } else {
       reset({
-        name: '',
-        type: 'Laptop',
-        serialNo: '',
-        purchaseDate: new Date().toISOString().split('T')[0],
-        warrantyExpiry: '',
+        name: "",
+        type: "Laptop",
+        serialNo: "",
+        purchaseDate: new Date().toISOString().split("T")[0],
+        warrantyExpiry: "",
         cost: 50000,
-        vendor: mockVendors[0]?.name || '',
-        location: 'Building A, Floor 1',
-        condition: 'Good',
+        vendor: "",
+        location: "Building A, Floor 1",
+        condition: "Good",
       });
     }
   }, [asset, reset, open]);
 
-  const onSubmit = (data) => {
-    if (asset) {
-      dispatch(updateAsset({ ...asset, ...data }));
-      enqueueSnackbar('Asset updated successfully', { variant: 'success' });
-    } else {
-      const newAsset = {
-        id: generateId('AST'),
-        code: generateId('AST'),
-        ...data,
-        status: 'available',
-        assignedTo: null,
-        department: null,
-      };
-      dispatch(addAsset(newAsset));
-      enqueueSnackbar('Asset registered successfully', { variant: 'success' });
+  const onSubmit = async (data) => {
+    const payload = {
+      asset_code: asset?.code || `AST-${Date.now()}`,
+      asset_name: data.name,
+      category: data.type,
+      serial_number: data.serialNo,
+      purchase_date: data.purchaseDate,
+      purchase_price: Number(data.cost),
+      location: data.location,
+      status: data.condition === "Needs Repair" ? "DAMAGED" : "AVAILABLE",
+      description: `${data.vendor || "Vendor not specified"} | ${data.condition}`,
+    };
+
+    try {
+      if (asset) {
+        const response = await api.put(`/assets/${asset.id}`, payload);
+        dispatch(
+          updateAsset({
+            ...asset,
+            ...response?.data,
+            code: response?.data?.asset_code || asset.code,
+            name: response?.data?.asset_name || asset.name,
+            type: response?.data?.category || asset.type,
+            serialNo: response?.data?.serial_number || asset.serialNo,
+            purchaseDate: response?.data?.purchase_date || asset.purchaseDate,
+            cost: response?.data?.purchase_price || asset.cost,
+            location: response?.data?.location || asset.location,
+            status:
+              String(response?.data?.status || asset.status).toLowerCase() ===
+              "issued"
+                ? "in-use"
+                : "available",
+          }),
+        );
+        enqueueSnackbar("Asset updated successfully", { variant: "success" });
+      } else {
+        const response = await api.post("/assets", payload);
+        const createdAsset = response?.data || response;
+        dispatch(
+          addAsset({
+            id: createdAsset.id,
+            code: createdAsset.asset_code,
+            name: createdAsset.asset_name,
+            type: createdAsset.category,
+            serialNo: createdAsset.serial_number,
+            purchaseDate: createdAsset.purchase_date,
+            cost: createdAsset.purchase_price,
+            location: createdAsset.location,
+            status:
+              String(createdAsset.status).toLowerCase() === "issued"
+                ? "in-use"
+                : "available",
+            assignedTo: null,
+            department: null,
+            vendor: data.vendor || "",
+            condition:
+              createdAsset.status === "DAMAGED" ? "Needs Repair" : "Good",
+          }),
+        );
+        enqueueSnackbar("Asset registered successfully", {
+          variant: "success",
+        });
+      }
+      onClose();
+    } catch (error) {
+      enqueueSnackbar(error?.message || "Failed to save asset", {
+        variant: "error",
+      });
     }
-    onClose();
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>{asset ? 'Edit Asset' : 'Register New Asset'}</DialogTitle>
+      <DialogTitle>{asset ? "Edit Asset" : "Register New Asset"}</DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent dividers>
           <Grid container spacing={2}>
@@ -118,7 +172,12 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                 name="type"
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} select fullWidth label="Asset Category / Type">
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label="Asset Category / Type"
+                  >
                     <MenuItem value="Laptop">Laptop</MenuItem>
                     <MenuItem value="Desktop">Desktop</MenuItem>
                     <MenuItem value="Printer">Printer</MenuItem>
@@ -197,11 +256,12 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                 name="vendor"
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} select fullWidth label="Supplier / Vendor">
-                    {mockVendors.map((v) => (
-                      <MenuItem key={v.id} value={v.name}>{v.name}</MenuItem>
-                    ))}
-                  </TextField>
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Supplier / Vendor"
+                    placeholder="Vendor name"
+                  />
                 )}
               />
             </Grid>
@@ -210,7 +270,12 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                 name="condition"
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} select fullWidth label="Initial Condition">
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label="Initial Condition"
+                  >
                     <MenuItem value="Good">Good</MenuItem>
                     <MenuItem value="Fair">Fair</MenuItem>
                     <MenuItem value="Needs Repair">Needs Repair</MenuItem>
@@ -224,7 +289,11 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                 name="location"
                 control={control}
                 render={({ field }) => (
-                  <TextField {...field} fullWidth label="Storage / Deployment Location" />
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Storage / Deployment Location"
+                  />
                 )}
               />
             </Grid>
@@ -233,7 +302,7 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="contained">
-            {asset ? 'Save Changes' : 'Register Asset'}
+            {asset ? "Save Changes" : "Register Asset"}
           </Button>
         </DialogActions>
       </form>

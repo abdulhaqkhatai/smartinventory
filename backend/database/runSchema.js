@@ -1,14 +1,20 @@
 import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "node:url";
 import mysql from "mysql2/promise";
 import dotenv from "dotenv";
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const backendDir = path.resolve(__dirname, "..");
+
+dotenv.config({ path: path.resolve(backendDir, ".env") });
 
 console.log("Starting schema setup...");
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
+  port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
@@ -18,7 +24,8 @@ const pool = mysql.createPool({
 try {
   console.log("Connecting to Railway MySQL...");
 
-  const sql = fs.readFileSync("./database/schema.sql", "utf8");
+  const schemaPath = path.resolve(__dirname, "schema.sql");
+  const sql = fs.readFileSync(schemaPath, "utf8");
 
   console.log("Schema file loaded.");
 

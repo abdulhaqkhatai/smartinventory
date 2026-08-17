@@ -1,6 +1,5 @@
 import { pool } from "../config/db.js";
 
-
 // ==========================================
 // CREATE ASSET
 // ==========================================
@@ -16,12 +15,11 @@ const createAsset = async ({
   status,
   description,
 }) => {
-
   const [existing] = await pool.execute(
     `SELECT id
      FROM assets
      WHERE asset_code = ?`,
-    [asset_code]
+    [asset_code],
   );
 
   if (existing.length > 0) {
@@ -52,7 +50,7 @@ const createAsset = async ({
       location || null,
       status || "AVAILABLE",
       description || null,
-    ]
+    ],
   );
 
   return {
@@ -69,41 +67,45 @@ const createAsset = async ({
   };
 };
 
-
 // ==========================================
 // GET ALL ASSETS
 // ==========================================
 
 const getAllAssets = async () => {
-
-  const [rows] = await pool.execute(`
-    SELECT
-      id,
-      asset_code,
-      asset_name,
-      category,
-      serial_number,
-      purchase_date,
-      purchase_price,
-      location,
-      status,
-      description,
-      created_at,
-      updated_at
-    FROM assets
-    ORDER BY id DESC
-  `);
-
-  return rows;
+  console.log("getAllAssets called - pool config check");
+  try {
+    console.log("About to execute query on pool");
+    const [rows] = await pool.execute(`
+      SELECT
+        id,
+        asset_code,
+        asset_name,
+        category,
+        serial_number,
+        purchase_date,
+        purchase_price,
+        location,
+        status,
+        description,
+        created_at,
+        updated_at
+      FROM assets
+      ORDER BY id DESC
+    `);
+    console.log(`Query successful, returned ${rows.length} rows`);
+    return rows;
+  } catch (err) {
+    console.error("getAllAssets error:", err.message);
+    console.error("Full error:", err);
+    throw err;
+  }
 };
-
 
 // ==========================================
 // GET ASSET BY ID
 // ==========================================
 
 const getAssetById = async (id) => {
-
   const [rows] = await pool.execute(
     `
     SELECT
@@ -122,7 +124,7 @@ const getAssetById = async (id) => {
     FROM assets
     WHERE id = ?
     `,
-    [id]
+    [id],
   );
 
   if (rows.length === 0) {
@@ -132,13 +134,11 @@ const getAssetById = async (id) => {
   return rows[0];
 };
 
-
 // ==========================================
 // UPDATE ASSET
 // ==========================================
 
 const updateAsset = async (id, data) => {
-
   const existing = await getAssetById(id);
 
   const {
@@ -177,19 +177,17 @@ const updateAsset = async (id, data) => {
       status ?? existing.status,
       description ?? existing.description,
       id,
-    ]
+    ],
   );
 
   return await getAssetById(id);
 };
-
 
 // ==========================================
 // DELETE ASSET
 // ==========================================
 
 const deleteAsset = async (id) => {
-
   const asset = await getAssetById(id);
 
   if (asset.status === "ISSUED") {
@@ -199,19 +197,17 @@ const deleteAsset = async (id) => {
   await pool.execute(
     `DELETE FROM assets
      WHERE id = ?`,
-    [id]
+    [id],
   );
 
   return true;
 };
-
 
 // ==========================================
 // ASSET HISTORY
 // ==========================================
 
 const getAssetHistory = async (id) => {
-
   await getAssetById(id);
 
   const [issues] = await pool.execute(
@@ -226,7 +222,7 @@ const getAssetHistory = async (id) => {
     FROM issue_transactions
     WHERE asset_id = ?
     `,
-    [id]
+    [id],
   );
 
   const [returns] = await pool.execute(
@@ -241,16 +237,13 @@ const getAssetHistory = async (id) => {
     FROM return_transactions
     WHERE asset_id = ?
     `,
-    [id]
+    [id],
   );
 
   return [...issues, ...returns].sort(
-    (a, b) =>
-      new Date(b.transaction_date) -
-      new Date(a.transaction_date)
+    (a, b) => new Date(b.transaction_date) - new Date(a.transaction_date),
   );
 };
-
 
 export {
   createAsset,

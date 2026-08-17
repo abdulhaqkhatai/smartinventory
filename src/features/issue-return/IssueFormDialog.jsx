@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import {
   Dialog,
@@ -16,20 +16,56 @@ import {
 
 import { Delete as DeleteIcon, Add as AddIcon } from "@mui/icons-material";
 
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useSnackbar } from "notistack";
 
 import { addIssue } from "./issueReturnSlice";
+import { setAssets } from "../assets/assetsSlice";
 import api from "../../services/api";
 
 import dayjs from "dayjs";
 
-import { mockItems } from "../../services/mockData";
-
 const IssueFormDialog = ({ open, onClose }) => {
   const dispatch = useDispatch();
+  const { assets } = useSelector((state) => state.assets);
 
   const { enqueueSnackbar } = useSnackbar();
+
+  useEffect(() => {
+    if (!assets.length) {
+      api
+        .get("/assets")
+        .then((response) => {
+          const rows = response?.data || [];
+          dispatch(
+            setAssets(
+              rows.map((asset) => ({
+                id: asset.id,
+                code: asset.asset_code,
+                name: asset.asset_name,
+                type: asset.category || "Other",
+                serialNo: asset.serial_number || "",
+                purchaseDate: asset.purchase_date || "",
+                warrantyExpiry: asset.warranty_expiry || "",
+                cost: asset.purchase_price || 0,
+                vendor: asset.vendor || "",
+                condition: asset.status === "DAMAGED" ? "Needs Repair" : "Good",
+                status:
+                  String(asset.status).toLowerCase() === "issued"
+                    ? "in-use"
+                    : "available",
+                assignedTo: null,
+                department: null,
+                location: asset.location || "",
+              })),
+            ),
+          );
+        })
+        .catch((error) => {
+          console.error("Failed to fetch assets for issue form:", error);
+        });
+    }
+  }, [assets.length, dispatch]);
 
   // ==========================================
   // INITIAL FORM
@@ -50,6 +86,18 @@ const IssueFormDialog = ({ open, onClose }) => {
       qty: 1,
     },
   ]);
+
+  // Auto-select first asset when available
+  useEffect(() => {
+    if (assets.length > 0) {
+      setItems([
+        {
+          item: assets[0],
+          qty: 1,
+        },
+      ]);
+    }
+  }, [assets]);
 
   // ==========================================
   // ADD ITEM
@@ -121,7 +169,7 @@ const IssueFormDialog = ({ open, onClose }) => {
 
       for (const row of items) {
         const result = await api.post("/issues", {
-          asset_id: row.item.id,
+          asset_id: row.item?.id,
           user_id: 1,
           issue_date: `${formData.date} 00:00:00`,
           expected_return_date: null,
@@ -199,25 +247,35 @@ const IssueFormDialog = ({ open, onClose }) => {
   // UI
   // ==========================================
 
+  const hasAssets = assets.length > 0;
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle
-        sx={{
-          fontWeight: "bold",
-        }}
-      >
-        Issue Items
-      </DialogTitle>
+      <DialogTitle sx={{ fontWeight: "bold" }}>Issue Items</DialogTitle>
 
       <form onSubmit={handleSubmit}>
         <DialogContent dividers>
-          <Grid
-            container
-            spacing={2}
-            sx={{
-              mb: 3,
-            }}
-          >
+          {!hasAssets && (
+            <Box
+              sx={{
+                mb: 2,
+                p: 2,
+                borderRadius: 1,
+                bgcolor: "warning.light",
+                color: "warning.contrastText",
+              }}
+            >
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                No asset available to issue.
+              </Typography>
+              <Typography variant="body2">
+                First create an asset from the Assets section, then open this
+                page again.
+              </Typography>
+            </Box>
+          )}
+
+          <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -260,9 +318,7 @@ const IssueFormDialog = ({ open, onClose }) => {
                     date: e.target.value,
                   })
                 }
-                InputLabelProps={{
-                  shrink: true,
-                }}
+                InputLabelProps={{ shrink: true }}
                 required
               />
             </Grid>
@@ -282,76 +338,74 @@ const IssueFormDialog = ({ open, onClose }) => {
             </Grid>
           </Grid>
 
-          <Typography
-            variant="h6"
-            sx={{
-              mb: 2,
-            }}
-          >
+          <Typography variant="h6" sx={{ mb: 2 }}>
             Items to Issue
           </Typography>
 
-          {items.map((row, index) => (
-            <Box
-              key={index}
-              sx={{
-                display: "flex",
-                gap: 2,
-                mb: 2,
-                alignItems: "flex-start",
-              }}
-            >
-              <Autocomplete
+          {hasAssets &&
+            items.map((row, index) => (
+              <Box
+                key={index}
                 sx={{
-                  flex: 2,
-                }}
-                options={mockItems}
-                getOptionLabel={(option) => option.name}
-                value={row.item}
-                onChange={(e, newValue) =>
-                  handleItemChange(index, "item", newValue)
-                }
-                renderInput={(params) => (
-                  <TextField {...params} label="Select Item" required />
-                )}
-              />
-
-              <TextField
-                sx={{
-                  flex: 1,
-                }}
-                type="number"
-                label="Quantity"
-                value={row.qty}
-                onChange={(e) => handleItemChange(index, "qty", e.target.value)}
-                inputProps={{
-                  min: 1,
-                }}
-                required
-              />
-
-              <IconButton
-                color="error"
-                onClick={() => handleRemoveItem(index)}
-                disabled={items.length === 1}
-                sx={{
-                  mt: 1,
+                  display: "flex",
+                  gap: 2,
+                  mb: 2,
+                  alignItems: "flex-start",
                 }}
               >
-                <DeleteIcon />
-              </IconButton>
-            </Box>
-          ))}
+                <Autocomplete
+                  sx={{ flex: 2 }}
+                  options={assets}
+                  getOptionLabel={(option) =>
+                    option?.name || option?.asset_name || ""
+                  }
+                  value={row.item}
+                  onChange={(e, newValue) =>
+                    handleItemChange(index, "item", newValue)
+                  }
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Asset" required />
+                  )}
+                />
 
-          <Button startIcon={<AddIcon />} onClick={handleAddItem}>
-            Add Another Item
-          </Button>
+                <TextField
+                  sx={{ flex: 1 }}
+                  type="number"
+                  label="Quantity"
+                  value={row.qty}
+                  onChange={(e) =>
+                    handleItemChange(index, "qty", e.target.value)
+                  }
+                  inputProps={{ min: 1 }}
+                  required
+                />
+
+                <IconButton
+                  color="error"
+                  onClick={() => handleRemoveItem(index)}
+                  disabled={items.length === 1}
+                  sx={{ mt: 1 }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            ))}
+
+          {hasAssets && (
+            <Button startIcon={<AddIcon />} onClick={handleAddItem}>
+              Add Another Item
+            </Button>
+          )}
         </DialogContent>
 
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
-
-          <Button type="submit" variant="contained" color="primary">
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            disabled={!hasAssets}
+          >
             Issue
           </Button>
         </DialogActions>

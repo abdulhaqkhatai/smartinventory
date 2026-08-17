@@ -16,6 +16,7 @@ import {
   TableCell,
   TableBody,
   Paper,
+  Box,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { useSnackbar } from "notistack";
@@ -28,6 +29,9 @@ const ReturnFormDialog = ({ open, onClose }) => {
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
   const { issues } = useSelector((state) => state.issueReturn);
+  const [issueOptions, setIssueOptions] = useState([]);
+  const sourceIssues = issues.length ? issues : issueOptions;
+  const hasIssueOptions = (sourceIssues || []).length > 0;
 
   const initialForm = {
     issueRef: "",
@@ -41,27 +45,53 @@ const ReturnFormDialog = ({ open, onClose }) => {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    if (formData.issueRef) {
-      const issue = issues.find((i) => i.code === formData.issueRef);
-      if (issue) {
-        setFormData((prev) => ({
-          ...prev,
-          returnedBy: issue.issuedTo,
-          department: issue.department,
-        }));
-        setItems(
-          issue.items.map((item) => ({
-            itemName: item.itemName,
-            issuedQty: item.quantity,
-            returnQty: 0,
-            condition: "Good",
-          })),
-        );
-      }
-    } else {
-      setItems([]);
+    if (!issues.length) {
+      api
+        .get("/issues")
+        .then((response) => {
+          const rows = response?.data || [];
+          const mapped = rows.map((issue) => ({
+            id: issue.id,
+            asset_id: issue.asset_id,
+            code: `ISS-${issue.id}`,
+            date: issue.issue_date?.split(" ")[0] || issue.issue_date,
+            issuedTo:
+              issue.notes?.match(/Issued To: ([^\n]+)/)?.[1] || "Unknown",
+            department:
+              issue.notes?.match(/Department: ([^\n]+)/)?.[1] || "General",
+            issuedBy: "Rajesh Kumar",
+            status: "issued",
+            remarks: issue.notes || "",
+            items: [{ itemName: issue.asset_name || "Asset", quantity: 1 }],
+          }));
+
+          setIssueOptions(mapped);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch issues for return form:", error);
+        });
     }
-  }, [formData.issueRef, issues]);
+  }, [issues.length]);
+
+  // Auto-select first issue when available
+  useEffect(() => {
+    if (sourceIssues.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        issueRef: sourceIssues[0].code,
+        returnedBy: sourceIssues[0].issuedTo,
+        department: sourceIssues[0].department,
+      }));
+      setItems(
+        sourceIssues[0].items.map((item) => ({
+          itemName: item.itemName,
+          issuedQty: item.quantity,
+          returnQty: 0,
+          condition: "Good",
+        })),
+      );
+    }
+  }, [sourceIssues]);
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
@@ -88,7 +118,7 @@ const ReturnFormDialog = ({ open, onClose }) => {
     }
 
     try {
-      const selectedIssue = issues.find(
+      const selectedIssue = sourceIssues.find(
         (issue) => issue.code === formData.issueRef,
       );
       const returnPayload = {
@@ -147,6 +177,26 @@ const ReturnFormDialog = ({ open, onClose }) => {
       <DialogTitle sx={{ fontWeight: "bold" }}>Record Return</DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent dividers>
+          {!hasIssueOptions && (
+            <Box
+              sx={{
+                mb: 2,
+                p: 2,
+                borderRadius: 1,
+                bgcolor: "warning.light",
+                color: "warning.contrastText",
+              }}
+            >
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                No issued asset found to return.
+              </Typography>
+              <Typography variant="body2">
+                First create an asset and issue it from the Issue section, then
+                return it here.
+              </Typography>
+            </Box>
+          )}
+
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -158,8 +208,9 @@ const ReturnFormDialog = ({ open, onClose }) => {
                   setFormData({ ...formData, issueRef: e.target.value })
                 }
                 required
+                disabled={!hasIssueOptions}
               >
-                {issues.map((iss) => (
+                {(sourceIssues || []).map((iss) => (
                   <MenuItem key={iss.id} value={iss.code}>
                     {iss.code} - {iss.issuedTo}
                   </MenuItem>

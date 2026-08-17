@@ -50,6 +50,7 @@ const IssueReturnPage = () => {
 
         const issueRows = (issuesResponse?.data || []).map((issue) => ({
           id: issue.id,
+          asset_id: issue.asset_id,
           code: `ISS-${issue.id}`,
           date: issue.issue_date?.split(" ")[0] || issue.issue_date,
           issuedTo: issue.notes?.match(/Issued To: ([^\n]+)/)?.[1] || "Unknown",

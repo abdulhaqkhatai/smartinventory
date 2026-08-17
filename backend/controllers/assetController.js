@@ -7,15 +7,12 @@ import {
   getAssetHistory,
 } from "../services/assetService.js";
 
-
 // ==========================================
 // CREATE ASSET
 // ==========================================
 
 const createAssetController = async (req, res) => {
-
   try {
-
     const {
       asset_code,
       asset_name,
@@ -29,12 +26,10 @@ const createAssetController = async (req, res) => {
     } = req.body;
 
     if (!asset_code || !asset_name) {
-
       return res.status(400).json({
         success: false,
         message: "asset_code and asset_name are required",
       });
-
     }
 
     const asset = await createAsset({
@@ -54,9 +49,7 @@ const createAssetController = async (req, res) => {
       message: "Asset created successfully",
       data: asset,
     });
-
   } catch (error) {
-
     console.error("Create asset error:", error.message);
 
     return res.status(400).json({
@@ -66,25 +59,25 @@ const createAssetController = async (req, res) => {
   }
 };
 
-
 // ==========================================
 // GET ALL ASSETS
 // ==========================================
 
 const getAllAssetsController = async (req, res) => {
-
+  console.log("getAllAssetsController called");
   try {
-
+    console.log("About to call getAllAssets service");
     const assets = await getAllAssets();
+    console.log("getAllAssets returned:", assets.length, "assets");
 
     return res.status(200).json({
       success: true,
       count: assets.length,
       data: assets,
     });
-
   } catch (error) {
-
+    console.error("getAllAssetsController error:", error.message);
+    console.error("Error stack:", error.stack);
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -92,15 +85,12 @@ const getAllAssetsController = async (req, res) => {
   }
 };
 
-
 // ==========================================
 // GET ASSET BY ID
 // ==========================================
 
 const getAssetByIdController = async (req, res) => {
-
   try {
-
     const { id } = req.params;
 
     const asset = await getAssetById(id);
@@ -109,9 +99,7 @@ const getAssetByIdController = async (req, res) => {
       success: true,
       data: asset,
     });
-
   } catch (error) {
-
     return res.status(404).json({
       success: false,
       message: error.message,
@@ -119,15 +107,12 @@ const getAssetByIdController = async (req, res) => {
   }
 };
 
-
 // ==========================================
 // UPDATE ASSET
 // ==========================================
 
 const updateAssetController = async (req, res) => {
-
   try {
-
     const { id } = req.params;
 
     const asset = await updateAsset(id, req.body);
@@ -137,9 +122,7 @@ const updateAssetController = async (req, res) => {
       message: "Asset updated successfully",
       data: asset,
     });
-
   } catch (error) {
-
     return res.status(400).json({
       success: false,
       message: error.message,
@@ -147,15 +130,12 @@ const updateAssetController = async (req, res) => {
   }
 };
 
-
 // ==========================================
 // DELETE ASSET
 // ==========================================
 
 const deleteAssetController = async (req, res) => {
-
   try {
-
     const { id } = req.params;
 
     await deleteAsset(id);
@@ -164,9 +144,7 @@ const deleteAssetController = async (req, res) => {
       success: true,
       message: "Asset deleted successfully",
     });
-
   } catch (error) {
-
     return res.status(400).json({
       success: false,
       message: error.message,
@@ -174,15 +152,12 @@ const deleteAssetController = async (req, res) => {
   }
 };
 
-
 // ==========================================
 // ASSET HISTORY
 // ==========================================
 
 const getAssetHistoryController = async (req, res) => {
-
   try {
-
     const { id } = req.params;
 
     const history = await getAssetHistory(id);
@@ -191,16 +166,13 @@ const getAssetHistoryController = async (req, res) => {
       success: true,
       data: history,
     });
-
   } catch (error) {
-
     return res.status(404).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 
 export {
   createAssetController,
