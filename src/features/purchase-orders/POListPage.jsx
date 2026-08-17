@@ -1,17 +1,23 @@
-import React, { useState } from 'react';
-import { Box, Typography, Button, Chip, IconButton } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Button, Chip, IconButton, CircularProgress } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { formatDate, getStatusColor, formatCurrency } from '../../utils/helpers';
+import { fetchPurchaseOrders } from './purchaseOrdersSlice';
 
 const POListPage = () => {
-  const { purchaseOrders } = useSelector((state) => state.purchaseOrders);
+  const dispatch = useDispatch();
+  const { purchaseOrders, loading } = useSelector((state) => state.purchaseOrders);
   const navigate = useNavigate();
   const [filter, setFilter] = useState('All');
+
+  useEffect(() => {
+    dispatch(fetchPurchaseOrders());
+  }, [dispatch]);
 
   const statuses = ['All', 'Pending', 'Completed', 'Cancelled'];
   
@@ -23,6 +29,14 @@ const POListPage = () => {
   const filteredPOs = filter === 'All' 
     ? purchaseOrders 
     : purchaseOrders.filter(po => po.status === filter);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   const columns = [
     { field: 'poCode', headerName: 'PO Code', flex: 1 },

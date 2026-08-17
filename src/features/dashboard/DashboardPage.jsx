@@ -100,8 +100,6 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
   );
 };
 
-];
-
 const quickActions = [
   { label: 'New Indent', icon: <Add />, path: '/indents/new', color: '#00BFA6' },
   { label: 'Create PO', icon: <ShoppingCart />, path: '/purchase-orders/new', color: '#7C4DFF' },

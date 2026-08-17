@@ -3,15 +3,19 @@ import jwt from 'jsonwebtoken';
 import { pool } from '../config/db.js';
 
 export const authService = {
-  async getUserByUsername(username) {
-    const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+  async getUserByUsername(identifier) {
+    const [rows] = await pool.query(
+      'SELECT * FROM users WHERE username = ? OR email = ?',
+      [identifier, identifier]
+    );
     return rows[0] || null;
   },
 
   async generateToken(user) {
+    const secret = process.env.JWT_SECRET || 'smart_inventory_jwt_secret_key_2026_secure';
     return jwt.sign(
-      { userId: user.id, role: user.role },
-      process.env.JWT_SECRET,
+      { userId: user.id, username: user.username, role: user.role },
+      secret,
       { expiresIn: '24h' }
     );
   },

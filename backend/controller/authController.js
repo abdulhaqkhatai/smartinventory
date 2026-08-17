@@ -6,17 +6,17 @@ export const authController = {
       const { username, password } = req.body;
 
       if (!username || !password) {
-        return res.status(400).json({ message: 'Username and password required' });
+        return res.status(400).json({ message: 'Username and password are required' });
       }
 
       const user = await authService.getUserByUsername(username);
       if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        return res.status(401).json({ message: 'Invalid username or password' });
       }
 
       const isValidPassword = await authService.validatePassword(password, user.password_hash);
       if (!isValidPassword) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        return res.status(401).json({ message: 'Invalid username or password' });
       }
 
       const token = await authService.generateToken(user);
@@ -25,12 +25,14 @@ export const authController = {
         user: {
           id: user.id,
           username: user.username,
+          name: user.username,
           email: user.email,
           role: user.role,
         },
       });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      console.error('Login error:', error);
+      res.status(500).json({ message: error.message || 'Internal Server Error' });
     }
   },
 
@@ -40,6 +42,7 @@ export const authController = {
       const userRole = req.userRole;
       res.json({ valid: true, userId, userRole });
     } catch (error) {
+      console.error('Validate token error:', error);
       res.status(500).json({ message: error.message });
     }
   },

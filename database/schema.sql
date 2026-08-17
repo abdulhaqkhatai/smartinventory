@@ -1,4 +1,9 @@
--- Users table for authentication
+-- Smart Inventory Management System
+-- Database Schema for Core Features & Integration
+
+-- ===================================
+-- USERS TABLE (Authentication)
+-- ===================================
 CREATE TABLE IF NOT EXISTS users (
   id INT PRIMARY KEY AUTO_INCREMENT,
   username VARCHAR(50) UNIQUE NOT NULL,
@@ -6,27 +11,37 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(50) DEFAULT 'user',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_username (username)
 );
 
--- Items table for inventory management
+-- ===================================
+-- ITEMS TABLE (Item Master)
+-- ===================================
 CREATE TABLE IF NOT EXISTS items (
   id INT PRIMARY KEY AUTO_INCREMENT,
+  code VARCHAR(50),
   name VARCHAR(200) NOT NULL,
   category VARCHAR(100),
   brand VARCHAR(100),
-  unit VARCHAR(50),
+  unit VARCHAR(50) DEFAULT 'Piece',
   hsn_code VARCHAR(50),
-  gst_rate DECIMAL(5, 2),
+  gst_rate DECIMAL(5, 2) DEFAULT 18.00,
   reorder_level INT DEFAULT 0,
   max_stock INT DEFAULT 0,
-  unit_price DECIMAL(10, 2),
+  quantity_in_stock INT DEFAULT 0,
+  unit_price DECIMAL(10, 2) DEFAULT 0.00,
+  description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_name (name),
+  INDEX idx_category (category),
   UNIQUE KEY unique_item_name (name)
 );
 
--- Vendors table for vendor management
+-- ===================================
+-- VENDORS TABLE (Vendor Management)
+-- ===================================
 CREATE TABLE IF NOT EXISTS vendors (
   id INT PRIMARY KEY AUTO_INCREMENT,
   name VARCHAR(200) NOT NULL,
@@ -45,135 +60,131 @@ CREATE TABLE IF NOT EXISTS vendors (
   status VARCHAR(50) DEFAULT 'active',
   rating INT DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_name (name),
+  INDEX idx_status (status),
+  INDEX idx_email (email)
 );
 
-CREATE TABLE issue_returns (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-
-    item_id INT NOT NULL,
-
-    issued_to VARCHAR(150) NOT NULL,
-
-    quantity INT NOT NULL,
-
-    issue_date DATE NOT NULL,
-
-    return_date DATE NULL,
-
-    transaction_type ENUM('ISSUE', 'RETURN') NOT NULL,
-
-    status ENUM('ISSUED', 'PARTIAL_RETURN', 'RETURNED')
-        DEFAULT 'ISSUED',
-
-    remarks VARCHAR(500) NULL,
-
-    parent_issue_id INT NULL,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (parent_issue_id)
-        REFERENCES issue_returns(id)
-        ON DELETE SET NULL
+-- ===================================
+-- INDENTS TABLE (Purchase Indents)
+-- ===================================
+CREATE TABLE IF NOT EXISTS indents (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(50) UNIQUE NOT NULL,
+  requested_by VARCHAR(150) NOT NULL,
+  department VARCHAR(100) NOT NULL,
+  date DATE NOT NULL,
+  status ENUM('draft', 'submitted', 'approved', 'rejected') DEFAULT 'draft',
+  items JSON NOT NULL,
+  remarks VARCHAR(500),
+  approved_by VARCHAR(150),
+  approval_date DATE,
+  rejection_reason VARCHAR(500),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_status (status),
+  INDEX idx_department (department)
 );
 
-
-CREATE TABLE assets (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-
-    asset_code VARCHAR(100) NOT NULL UNIQUE,
-
-    asset_name VARCHAR(150) NOT NULL,
-
-    category VARCHAR(100),
-
-    item_id INT NULL,
-
-    serial_number VARCHAR(150) UNIQUE,
-
-    purchase_date DATE NULL,
-
-    purchase_cost DECIMAL(12,2) DEFAULT 0,
-
-    assigned_to VARCHAR(150) NULL,
-
-    assigned_department VARCHAR(150) NULL,
-
-    location VARCHAR(200) NULL,
-
-    status ENUM(
-        'AVAILABLE',
-        'ASSIGNED',
-        'UNDER_MAINTENANCE',
-        'DAMAGED',
-        'DISPOSED'
-    ) DEFAULT 'AVAILABLE',
-
-    description VARCHAR(500) NULL,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP
+-- ===================================
+-- PURCHASE ORDERS TABLE
+-- ===================================
+CREATE TABLE IF NOT EXISTS purchase_orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(50) UNIQUE NOT NULL,
+  vendor_id INT NOT NULL,
+  vendor_name VARCHAR(150) NOT NULL,
+  indent_ref VARCHAR(50),
+  date DATE NOT NULL,
+  delivery_date DATE,
+  status ENUM('pending', 'confirmed', 'completed', 'cancelled') DEFAULT 'pending',
+  items JSON NOT NULL,
+  subtotal DECIMAL(12,2),
+  gst_amount DECIMAL(12,2),
+  total_amount DECIMAL(12,2),
+  terms VARCHAR(500),
+  payment_terms VARCHAR(100),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_status (status),
+  INDEX idx_vendor_id (vendor_id)
 );
 
-
-
-
-CREATE TABLE asset_assignments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-
-    asset_id INT NOT NULL,
-
-    assigned_to VARCHAR(150) NOT NULL,
-
-    department VARCHAR(150),
-
-    location VARCHAR(200),
-
-    assigned_date DATE NOT NULL,
-
-    returned_date DATE NULL,
-
-    status ENUM('ASSIGNED', 'RETURNED')
-        DEFAULT 'ASSIGNED',
-
-    remarks VARCHAR(500),
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (asset_id)
-        REFERENCES assets(id)
-        ON DELETE CASCADE
+-- ===================================
+-- GRN TABLE (Goods Receipt Note)
+-- ===================================
+CREATE TABLE IF NOT EXISTS grn_receipts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(50) UNIQUE NOT NULL,
+  po_ref VARCHAR(50) NOT NULL,
+  vendor_name VARCHAR(150) NOT NULL,
+  invoice_number VARCHAR(100) NOT NULL,
+  invoice_date DATE NOT NULL,
+  received_date DATE NOT NULL,
+  received_by VARCHAR(150) NOT NULL,
+  status ENUM('draft', 'verified', 'rejected') DEFAULT 'draft',
+  items JSON NOT NULL,
+  remarks VARCHAR(500),
+  verified_by VARCHAR(150),
+  verification_date DATE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_status (status),
+  INDEX idx_po_ref (po_ref)
 );
 
-
-
-CREATE TABLE asset_maintenance (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-
-    asset_id INT NOT NULL,
-
-    maintenance_date DATE NOT NULL,
-
-    maintenance_type VARCHAR(150),
-
-    description VARCHAR(500),
-
-    cost DECIMAL(12,2) DEFAULT 0,
-
-    status ENUM(
-        'PENDING',
-        'IN_PROGRESS',
-        'COMPLETED'
-    ) DEFAULT 'PENDING',
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (asset_id)
-        REFERENCES assets(id)
-        ON DELETE CASCADE
+-- ===================================
+-- INVENTORY MOVEMENTS TABLE
+-- ===================================
+CREATE TABLE IF NOT EXISTS inventory_movements (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  reference_code VARCHAR(50) NOT NULL,
+  movement_type ENUM('IN', 'OUT', 'TRANSFER', 'ADJUSTMENT') NOT NULL,
+  item_id INT NOT NULL,
+  item_code VARCHAR(50),
+  item_name VARCHAR(200) NOT NULL,
+  category VARCHAR(100),
+  quantity INT NOT NULL,
+  unit_price DECIMAL(10,2),
+  total_value DECIMAL(12,2),
+  from_location VARCHAR(100),
+  to_location VARCHAR(100),
+  reference_type VARCHAR(50),
+  reference_id VARCHAR(50),
+  performed_by VARCHAR(150) NOT NULL,
+  notes VARCHAR(500),
+  date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_movement_type (movement_type),
+  INDEX idx_item_id (item_id),
+  INDEX idx_date (date)
 );
+
+-- ===================================
+-- SEED INITIAL USERS (password: admin123)
+-- ===================================
+INSERT INTO users (username, email, password_hash, role) VALUES
+('admin', 'admin@example.com', '$2a$10$l6vAWfZb5Yj/yGFX9SwO4.0kTDHM3.2akumKm.0A5fFtsVGlFhRYC', 'admin'),
+('user1', 'user1@example.com', '$2a$10$l6vAWfZb5Yj/yGFX9SwO4.0kTDHM3.2akumKm.0A5fFtsVGlFhRYC', 'user')
+ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash);
+
+-- ===================================
+-- SEED INITIAL ITEMS
+-- ===================================
+INSERT IGNORE INTO items (code, name, category, brand, unit, hsn_code, gst_rate, reorder_level, max_stock, quantity_in_stock, unit_price) VALUES
+('ITM-0001', 'Laptop Dell XPS 13', 'Electronics', 'Dell', 'Piece', '8471.30', 18.00, 5, 20, 10, 85000.00),
+('ITM-0002', 'Wireless Mouse', 'Electronics', 'Logitech', 'Piece', '8517.62', 18.00, 20, 100, 50, 2500.00),
+('ITM-0003', 'USB-C Cable 2M', 'Accessories', 'Generic', 'Piece', '8544.30', 5.00, 50, 500, 200, 300.00),
+('ITM-0004', 'Monitor 27 Inch', 'Electronics', 'LG', 'Piece', '8528.72', 18.00, 5, 15, 8, 25000.00),
+('ITM-0005', 'Keyboard Mechanical', 'Accessories', 'Corsair', 'Piece', '8471.30', 18.00, 10, 50, 25, 8000.00);
+
+-- ===================================
+-- SEED INITIAL VENDORS
+-- ===================================
+INSERT IGNORE INTO vendors (name, contact_person, email, phone, city, state, gst_number, pan_number, bank_name, bank_account, bank_ifsc, status, rating) VALUES
+('Tech Solutions Ltd', 'Rajesh Kumar', 'rajesh@techsol.com', '9876543210', 'Mumbai', 'Maharashtra', '27AABCT1234H1Z0', 'AAAPA1234K', 'HDFC Bank', '1234567890123', 'HDFC0000001', 'active', 4),
+('Digital Supplies Co', 'Priya Sharma', 'priya@digsup.com', '9876543211', 'Delhi', 'Delhi', '07AABCS5678H2Z1', 'BBBPB5678L', 'ICICI Bank', '0987654321098', 'ICIC0000002', 'active', 5),
+('Electronics Hub', 'Amit Patel', 'amit@elecHub.com', '9876543212', 'Bangalore', 'Karnataka', '29AABCU9012H3Z2', 'CCCPC9012M', 'Axis Bank', '1122334455667', 'AXIS0000003', 'active', 3),
+('Global Import Services', 'Sanjay Singh', 'sanjay@globalimp.com', '9876543213', 'Pune', 'Maharashtra', '27AABCV3456H4Z3', 'DDDPD3456N', 'BOB Bank', '9988776655443', 'BARB0000004', 'inactive', 2),
+('Premium Distributors', 'Neha Gupta', 'neha@premdist.com', '9876543214', 'Hyderabad', 'Telangana', '36AABCW7890H5Z4', 'EEEPV7890O', 'SBI Bank', '5566778899001', 'SBIN0000005', 'blacklisted', 1);
