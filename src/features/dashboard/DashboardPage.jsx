@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   Box,
@@ -49,8 +49,8 @@ import {
   AreaChart,
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
 import {
-  mockDashboardStats,
   mockChartData,
   mockRecentTransactions,
 } from '../../services/mockData';
@@ -100,13 +100,6 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
   );
 };
 
-const kpiData = [
-  { title: 'Total Items', value: mockDashboardStats.totalItems, icon: <Inventory2 />, color: '#00BFA6', gradient: 'linear-gradient(135deg, #00BFA6 0%, #00897B 100%)' },
-  { title: 'Low Stock', value: mockDashboardStats.lowStockItems, icon: <Warning />, color: '#FFB74D', gradient: 'linear-gradient(135deg, #FFB74D 0%, #F57C00 100%)' },
-  { title: 'Pending Indents', value: mockDashboardStats.pendingIndents, icon: <Description />, color: '#29B6F6', gradient: 'linear-gradient(135deg, #29B6F6 0%, #0288D1 100%)' },
-  { title: 'Pending GRNs', value: mockDashboardStats.pendingGRNs, icon: <LocalShipping />, color: '#7C4DFF', gradient: 'linear-gradient(135deg, #7C4DFF 0%, #651FFF 100%)' },
-  { title: 'Assets Issued', value: mockDashboardStats.assetsIssued, icon: <Devices />, color: '#66BB6A', gradient: 'linear-gradient(135deg, #66BB6A 0%, #43A047 100%)' },
-  { title: 'Active Vendors', value: mockDashboardStats.totalVendors, icon: <People />, color: '#FF80AB', gradient: 'linear-gradient(135deg, #FF80AB 0%, #F50057 100%)' },
 ];
 
 const quickActions = [
@@ -119,6 +112,43 @@ const quickActions = [
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalItems: 0,
+    lowStockItems: 0,
+    pendingIndents: 0,
+    pendingGRNs: 0,
+    assetsIssued: 0,
+    totalVendors: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/reports/dashboard');
+        if (response) {
+          setDashboardStats(response);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        // Keep the default values if API fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const kpiData = [
+    { title: 'Total Items', value: dashboardStats.totalItems, icon: <Inventory2 />, color: '#00BFA6', gradient: 'linear-gradient(135deg, #00BFA6 0%, #00897B 100%)' },
+    { title: 'Low Stock', value: dashboardStats.lowStockItems, icon: <Warning />, color: '#FFB74D', gradient: 'linear-gradient(135deg, #FFB74D 0%, #F57C00 100%)' },
+    { title: 'Pending Indents', value: dashboardStats.pendingIndents, icon: <Description />, color: '#29B6F6', gradient: 'linear-gradient(135deg, #29B6F6 0%, #0288D1 100%)' },
+    { title: 'Pending GRNs', value: dashboardStats.pendingGRNs, icon: <LocalShipping />, color: '#7C4DFF', gradient: 'linear-gradient(135deg, #7C4DFF 0%, #651FFF 100%)' },
+    { title: 'Assets Issued', value: dashboardStats.assetsIssued, icon: <Devices />, color: '#66BB6A', gradient: 'linear-gradient(135deg, #66BB6A 0%, #43A047 100%)' },
+    { title: 'Active Vendors', value: dashboardStats.totalVendors, icon: <People />, color: '#FF80AB', gradient: 'linear-gradient(135deg, #FF80AB 0%, #F50057 100%)' },
+  ];
 
   const getTransactionTypeColor = (type) => {
     const map = {
