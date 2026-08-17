@@ -1,25 +1,39 @@
-import React, { useState } from 'react';
-import { Box, Typography, Tabs, Tab, Paper, Card, CardContent, Grid, Button, TextField, Autocomplete, Chip } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Tabs, Tab, Paper, Card, CardContent, Grid, Button, TextField, Autocomplete, Chip, CircularProgress } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { motion } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { useSnackbar } from 'notistack';
-import { addStockMovement } from './inventorySlice';
+import { addStockMovement, fetchStockMovements, fetchStockLevels, fetchLowStockItems } from './inventorySlice';
 import { mockItems } from '../../services/mockData'; // In real app, fetch from itemSlice
 import { formatCurrency, formatDate, generateId } from '../../utils/helpers';
 import dayjs from 'dayjs';
 
 const InventoryPage = () => {
   const [tabValue, setTabValue] = useState(0);
-  const { stockMovements } = useSelector(state => state.inventory);
   const dispatch = useDispatch();
+  const { stockMovements, stockLevels, lowStockItems, loading } = useSelector(state => state.inventory);
   const { enqueueSnackbar } = useSnackbar();
   
   const [adjForm, setAdjForm] = useState({ item: null, type: 'Adjustment', qty: '', reason: '' });
 
+  useEffect(() => {
+    dispatch(fetchStockMovements());
+    dispatch(fetchStockLevels());
+    dispatch(fetchLowStockItems());
+  }, [dispatch]);
+
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   const getStockColor = (current, reorder) => {
     if (current <= 0) return 'error';
