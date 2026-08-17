@@ -6,7 +6,7 @@ import {
   getIssueReportController,
   getReturnReportController,
   getDamagedAssetReportController,
-} from "../controllers/reportController.js";
+} from "../controller/reportController.js";
 
 const router = express.Router();
 

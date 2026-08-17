@@ -7,51 +7,27 @@ import { pool } from "../config/db.js";
 
 const getDashboardReport = async () => {
 
-  const [assets] = await pool.execute(`
+  const [itemsResult] = await pool.execute(`
+    SELECT COUNT(*) AS total_items FROM items
+  `);
+
+  const [vendorsResult] = await pool.execute(`
     SELECT
-      COUNT(*) AS total_assets,
-
-      SUM(
-        CASE
-          WHEN status = 'AVAILABLE' THEN 1
-          ELSE 0
-        END
-      ) AS available_assets,
-
-      SUM(
-        CASE
-          WHEN status = 'ISSUED' THEN 1
-          ELSE 0
-        END
-      ) AS issued_assets,
-
-      SUM(
-        CASE
-          WHEN status = 'DAMAGED' THEN 1
-          ELSE 0
-        END
-      ) AS damaged_assets
-
-    FROM assets
+      COUNT(*) AS total_vendors,
+      SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active_vendors,
+      SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) AS inactive_vendors,
+      SUM(CASE WHEN status = 'blacklisted' THEN 1 ELSE 0 END) AS blacklisted_vendors
+    FROM vendors
   `);
 
-
-  const [issues] = await pool.execute(`
-    SELECT COUNT(*) AS total_issues
-    FROM issue_transactions
+  const [usersResult] = await pool.execute(`
+    SELECT COUNT(*) AS total_users FROM users
   `);
-
-
-  const [returns] = await pool.execute(`
-    SELECT COUNT(*) AS total_returns
-    FROM return_transactions
-  `);
-
 
   return {
-    assets: assets[0],
-    total_issues: issues[0].total_issues,
-    total_returns: returns[0].total_returns,
+    items: itemsResult[0],
+    vendors: vendorsResult[0],
+    users: usersResult[0],
   };
 };
 
