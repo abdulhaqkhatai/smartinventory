@@ -132,9 +132,9 @@ const VendorListPage = () => {
       <Paper sx={{ mb: 2, bgcolor: '#132F4C', borderRadius: 2 }}>
         <Tabs value={statusFilter} onChange={(e, val) => setStatusFilter(val)} textColor="primary" indicatorColor="primary" sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
           <Tab label="All" value="All" />
-          <Tab label="Active" value="Active" />
-          <Tab label="Inactive" value="Inactive" />
-          <Tab label="Blacklisted" value="Blacklisted" />
+          <Tab label="Active" value="active" />
+          <Tab label="Inactive" value="inactive" />
+          <Tab label="Blacklisted" value="blacklisted" />
         </Tabs>
         <Box sx={{ p: 2, display: 'flex', gap: 2 }}>
           <TextField
