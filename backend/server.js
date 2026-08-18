@@ -1,69 +1,90 @@
-<<<<<<< HEAD
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
 
-console.log("server.js loaded");
+
+// ===============================
+// Route Imports
+// ===============================
 
 import assetRoutes from "./routes/assetRoutes.js";
 import issueRoutes from "./routes/issueRoutes.js";
 import returnRoutes from "./routes/returnRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 
-console.log("All routes imported successfully");
+import indentRoutes from "./routes/indentRoutes.js";
+import purchaseOrderRoutes from "./routes/purchaseOrderRoutes.js";
+import grnRoutes from "./routes/grnRoutes.js";
+import inventoryRoutes from "./routes/inventoryRoutes.js";
 
-const app = express();
 
-const PORT = process.env.PORT || 5000;
-
-// ==========================================
-// MIDDLEWARE
-// ==========================================
-
-=======
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import db from './config/db.js';
-
-// Route imports
-import indentRoutes from './routes/indentRoutes.js';
-import purchaseOrderRoutes from './routes/purchaseOrderRoutes.js';
-import grnRoutes from './routes/grnRoutes.js';
-import inventoryRoutes from './routes/inventoryRoutes.js';
-import issueRoutes from './routes/issueRoutes.js';
-import returnRoutes from './routes/returnRoutes.js';
-import reportRoutes from './routes/reportRoutes.js';
+// ===============================
+// Environment Variables
+// ===============================
 
 dotenv.config();
 
+
+// ===============================
+// App Initialization
+// ===============================
+
 const app = express();
+
 const PORT = process.env.PORT || 5000;
 
+
+// ===============================
 // Middleware
->>>>>>> 98594e2a84d56b687ab4cc651510bc361c22f8cc
+// ===============================
+
 app.use(cors());
+
 app.use(express.json());
+
 app.use(express.urlencoded({ extended: true }));
 
-// Request logging middleware
+
+// ===============================
+// Request Logger
+// ===============================
+
 app.use((req, res, next) => {
-<<<<<<< HEAD
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log(
+    `[${new Date().toISOString()}] ${req.method} ${req.path}`
+  );
+
   next();
 });
 
-// ==========================================
-// RESOURCE ROUTES
-// ==========================================
 
+// ===============================
+// API Routes
+// ===============================
+
+// Your routes
 app.use("/api/assets", assetRoutes);
+
 app.use("/api/issues", issueRoutes);
+
 app.use("/api/returns", returnRoutes);
+
 app.use("/api/reports", reportRoutes);
 
-// ==========================================
-// ROOT ROUTE
-// ==========================================
+
+// Friend's routes
+app.use("/api/indents", indentRoutes);
+
+app.use("/api/purchase-orders", purchaseOrderRoutes);
+
+app.use("/api/grn", grnRoutes);
+
+app.use("/api/inventory", inventoryRoutes);
+
+
+// ===============================
+// Root Route
+// ===============================
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -72,20 +93,23 @@ app.get("/", (req, res) => {
   });
 });
 
-// ==========================================
-// HEALTH CHECK
-// ==========================================
+
+// ===============================
+// Health Check
+// ===============================
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
     message: "Smart Inventory API is working",
+    timestamp: new Date(),
   });
 });
 
-// ==========================================
-// 404 HANDLER
-// ==========================================
+
+// ===============================
+// 404 Handler
+// ===============================
 
 app.use((req, res) => {
   res.status(404).json({
@@ -94,9 +118,10 @@ app.use((req, res) => {
   });
 });
 
-// ==========================================
-// ERROR HANDLER
-// ==========================================
+
+// ===============================
+// Error Handler
+// ===============================
 
 app.use((err, req, res, next) => {
   console.error("Server Error:", err);
@@ -107,9 +132,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ==========================================
-// START SERVER
-// ==========================================
+
+// ===============================
+// Start Server
+// ===============================
 
 app.listen(PORT, () => {
   console.log("=================================");
@@ -118,44 +144,6 @@ app.listen(PORT, () => {
   console.log(`http://localhost:${PORT}`);
   console.log("=================================");
 });
-=======
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'Server is running', timestamp: new Date() });
-});
-
-// API Routes
-app.use('/api/indents', indentRoutes);
-app.use('/api/purchase-orders', purchaseOrderRoutes);
-app.use('/api/grn', grnRoutes);
-app.use('/api/inventory', inventoryRoutes);
-app.use('/api/issues', issueRoutes);
-app.use('/api/returns', returnRoutes);
-app.use('/api/reports', reportRoutes);
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    message: err.message || 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err : {},
-  });
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found' });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
 
 export default app;
->>>>>>> 98594e2a84d56b687ab4cc651510bc361c22f8cc
