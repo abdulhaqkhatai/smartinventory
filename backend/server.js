@@ -2,41 +2,41 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
-
-// ===============================
-// Route Imports
-// ===============================
+// ==========================================
+// YOUR ROUTES
+// ==========================================
 
 import assetRoutes from "./routes/assetRoutes.js";
 import issueRoutes from "./routes/issueRoutes.js";
 import returnRoutes from "./routes/returnRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 
+// ==========================================
+// FRIEND'S ROUTES
+// ==========================================
+
 import indentRoutes from "./routes/indentRoutes.js";
 import purchaseOrderRoutes from "./routes/purchaseOrderRoutes.js";
 import grnRoutes from "./routes/grnRoutes.js";
 import inventoryRoutes from "./routes/inventoryRoutes.js";
 
-
-// ===============================
-// Environment Variables
-// ===============================
+// ==========================================
+// ENVIRONMENT
+// ==========================================
 
 dotenv.config();
 
-
-// ===============================
-// App Initialization
-// ===============================
+// ==========================================
+// APP INITIALIZATION
+// ==========================================
 
 const app = express();
 
 const PORT = process.env.PORT || 5000;
 
-
-// ===============================
-// Middleware
-// ===============================
+// ==========================================
+// MIDDLEWARE
+// ==========================================
 
 app.use(cors());
 
@@ -44,10 +44,9 @@ app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 
-
-// ===============================
-// Request Logger
-// ===============================
+// ==========================================
+// REQUEST LOGGER
+// ==========================================
 
 app.use((req, res, next) => {
   console.log(
@@ -57,12 +56,10 @@ app.use((req, res, next) => {
   next();
 });
 
+// ==========================================
+// YOUR API ROUTES
+// ==========================================
 
-// ===============================
-// API Routes
-// ===============================
-
-// Your routes
 app.use("/api/assets", assetRoutes);
 
 app.use("/api/issues", issueRoutes);
@@ -71,8 +68,10 @@ app.use("/api/returns", returnRoutes);
 
 app.use("/api/reports", reportRoutes);
 
+// ==========================================
+// FRIEND'S API ROUTES
+// ==========================================
 
-// Friend's routes
 app.use("/api/indents", indentRoutes);
 
 app.use("/api/purchase-orders", purchaseOrderRoutes);
@@ -81,10 +80,9 @@ app.use("/api/grn", grnRoutes);
 
 app.use("/api/inventory", inventoryRoutes);
 
-
-// ===============================
-// Root Route
-// ===============================
+// ==========================================
+// ROOT ROUTE
+// ==========================================
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -93,10 +91,9 @@ app.get("/", (req, res) => {
   });
 });
 
-
-// ===============================
-// Health Check
-// ===============================
+// ==========================================
+// HEALTH CHECK
+// ==========================================
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
@@ -106,10 +103,9 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-
-// ===============================
-// 404 Handler
-// ===============================
+// ==========================================
+// 404 HANDLER
+// ==========================================
 
 app.use((req, res) => {
   res.status(404).json({
@@ -118,10 +114,9 @@ app.use((req, res) => {
   });
 });
 
-
-// ===============================
-// Error Handler
-// ===============================
+// ==========================================
+// ERROR HANDLER
+// ==========================================
 
 app.use((err, req, res, next) => {
   console.error("Server Error:", err);
@@ -132,10 +127,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-
-// ===============================
-// Start Server
-// ===============================
+// ==========================================
+// START SERVER
+// ==========================================
 
 app.listen(PORT, () => {
   console.log("=================================");
@@ -144,6 +138,5 @@ app.listen(PORT, () => {
   console.log(`http://localhost:${PORT}`);
   console.log("=================================");
 });
-
 
 export default app;
