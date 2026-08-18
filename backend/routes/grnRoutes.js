@@ -1,5 +1,5 @@
 import express from 'express';
-import * as grnController from '../controller/grnController.js';
+import * as grnController from '../controllers/grnController.js';
 
 const router = express.Router();
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import * as indentController from '../controller/indentController.js';
+import * as indentController from '../controllers/indentController.js';
 
 const router = express.Router();
 
