@@ -1,18 +1,24 @@
-import React, { useState } from 'react';
-import { Box, Typography, Button, Chip, IconButton } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Button, Chip, IconButton, CircularProgress } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import { formatDate, getStatusColor } from '../../utils/helpers';
+import { fetchIndents } from './indentsSlice';
 
 const IndentListPage = () => {
-  const { indents } = useSelector((state) => state.indents);
+  const dispatch = useDispatch();
+  const { indents, loading } = useSelector((state) => state.indents);
   const navigate = useNavigate();
   const [filter, setFilter] = useState('All');
+
+  useEffect(() => {
+    dispatch(fetchIndents());
+  }, [dispatch]);
 
   const statuses = ['All', 'Draft', 'Submitted', 'Approved', 'Rejected'];
   
@@ -71,6 +77,14 @@ const IndentListPage = () => {
       )
     }
   ];
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box component={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} sx={{ p: 3 }}>

@@ -1,21 +1,35 @@
-import React, { useState } from 'react';
-import { Box, Typography, Button, Paper, Chip, IconButton } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Button, Paper, Chip, IconButton, CircularProgress } from '@mui/material';
 import { Add as AddIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { formatDate, getStatusColor } from '../../utils/helpers';
+import { fetchGRNs } from './grnSlice';
 
 const GRNListPage = () => {
   const navigate = useNavigate();
-  const { grns } = useSelector(state => state.grn);
+  const dispatch = useDispatch();
+  const { grns, loading } = useSelector(state => state.grn);
   const [filter, setFilter] = useState('all'); // all, completed, partial
+
+  useEffect(() => {
+    dispatch(fetchGRNs());
+  }, [dispatch]);
 
   const filteredGRNs = grns.filter(grn => {
     if (filter === 'all') return true;
     return grn.status === filter;
   });
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   const columns = [
     { field: 'code', headerName: 'GRN Code', flex: 1 },
