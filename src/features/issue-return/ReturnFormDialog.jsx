@@ -25,6 +25,45 @@ import api from "../../services/api";
 import { generateId } from "../../utils/helpers";
 import dayjs from "dayjs";
 
+// ---------------------------------------------------------
+// Helper: Convert objects/arrays into safe React text
+// (same guard used in IssueReturnPage.jsx — kept in sync so
+// any field coming back from the API as an object instead of
+// a string never gets rendered directly as a JSX child)
+// ---------------------------------------------------------
+const getText = (value, fallback = "") => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => getText(item))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (typeof value === "object") {
+    return (
+      value.name ||
+      value.code ||
+      value.asset_name ||
+      value.employee_name ||
+      value.department_name ||
+      value.title ||
+      value.email ||
+      value.id ||
+      fallback
+    );
+  }
+
+  return fallback;
+};
+
 const ReturnFormDialog = ({ open, onClose }) => {
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
@@ -49,21 +88,43 @@ const ReturnFormDialog = ({ open, onClose }) => {
       api
         .get("/issues")
         .then((response) => {
-          const rows = response?.data || [];
-          const mapped = rows.map((issue) => ({
-            id: issue.id,
-            asset_id: issue.asset_id,
-            code: `ISS-${issue.id}`,
-            date: issue.issue_date?.split(" ")[0] || issue.issue_date,
-            issuedTo:
-              issue.notes?.match(/Issued To: ([^\n]+)/)?.[1] || "Unknown",
-            department:
-              issue.notes?.match(/Department: ([^\n]+)/)?.[1] || "General",
-            issuedBy: "Rajesh Kumar",
-            status: "issued",
-            remarks: issue.notes || "",
-            items: [{ itemName: issue.asset_name || "Asset", quantity: 1 }],
-          }));
+          const rows = response?.data?.data || response?.data || [];
+
+          const mapped = rows.map((issue) => {
+            // FIX: notes might not be a plain string — run it
+            // through getText() before regex-matching on it.
+            const notes = getText(issue.notes, "");
+
+            return {
+              id: issue.id,
+              asset_id: issue.asset_id,
+              code: `ISS-${issue.id}`,
+              date: issue.issue_date?.split(" ")[0] || issue.issue_date,
+              issuedTo:
+                notes.match(/Issued To:\s*([^\n,]+)/)?.[1]?.trim() ||
+                "Unknown",
+              department:
+                notes.match(/Department:\s*([^\n,]+)/)?.[1]?.trim() ||
+                "General",
+              issuedBy: "Rajesh Kumar",
+              status: "issued",
+              remarks: notes,
+              // FIX: this was the actual crash. issue.asset_name can
+              // come back as an object (e.g. { id, name, code }) from
+              // the API instead of a plain string, and it was being
+              // dropped straight into itemName, then rendered directly
+              // in a <TableCell> below. getText() guarantees a string.
+              items: [
+                {
+                  itemName: getText(
+                    issue.asset_name || issue.asset || issue.asset_details,
+                    "Asset"
+                  ),
+                  quantity: 1,
+                },
+              ],
+            };
+          });
 
           setIssueOptions(mapped);
         })
@@ -78,13 +139,13 @@ const ReturnFormDialog = ({ open, onClose }) => {
     if (sourceIssues.length > 0) {
       setFormData((prev) => ({
         ...prev,
-        issueRef: sourceIssues[0].code,
-        returnedBy: sourceIssues[0].issuedTo,
-        department: sourceIssues[0].department,
+        issueRef: getText(sourceIssues[0].code),
+        returnedBy: getText(sourceIssues[0].issuedTo),
+        department: getText(sourceIssues[0].department),
       }));
       setItems(
-        sourceIssues[0].items.map((item) => ({
-          itemName: item.itemName,
+        (sourceIssues[0].items || []).map((item) => ({
+          itemName: getText(item.itemName, "Asset"),
           issuedQty: item.quantity,
           returnQty: 0,
           condition: "Good",
@@ -140,7 +201,7 @@ const ReturnFormDialog = ({ open, onClose }) => {
       };
 
       const result = await api.post("/returns", returnPayload);
-      const createdReturn = result?.data || result;
+      const createdReturn = result?.data?.data || result?.data;
 
       const newReturn = {
         id: createdReturn?.id || generateId(),
@@ -166,7 +227,13 @@ const ReturnFormDialog = ({ open, onClose }) => {
       setItems([]);
       onClose();
     } catch (error) {
-      enqueueSnackbar(error?.message || "Failed to record return.", {
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Failed to record return.";
+
+      enqueueSnackbar(message, {
         variant: "error",
       });
     }
@@ -211,8 +278,8 @@ const ReturnFormDialog = ({ open, onClose }) => {
                 disabled={!hasIssueOptions}
               >
                 {(sourceIssues || []).map((iss) => (
-                  <MenuItem key={iss.id} value={iss.code}>
-                    {iss.code} - {iss.issuedTo}
+                  <MenuItem key={iss.id} value={getText(iss.code)}>
+                    {getText(iss.code)} - {getText(iss.issuedTo, "Unknown")}
                   </MenuItem>
                 ))}
               </TextField>
@@ -276,7 +343,7 @@ const ReturnFormDialog = ({ open, onClose }) => {
                   <TableBody>
                     {items.map((row, index) => (
                       <TableRow key={index}>
-                        <TableCell>{row.itemName}</TableCell>
+                        <TableCell>{getText(row.itemName, "Asset")}</TableCell>
                         <TableCell align="center">{row.issuedQty}</TableCell>
                         <TableCell align="center">
                           <TextField
