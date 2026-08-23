@@ -84,7 +84,9 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
       purchase_date: data.purchaseDate,
       purchase_price: Number(data.cost),
       location: data.location,
-      status: data.condition === "Needs Repair" ? "DAMAGED" : "AVAILABLE",
+      status: asset && String(asset.status).toUpperCase() === 'ISSUED' 
+        ? 'ISSUED' 
+        : (data.condition === "Needs Repair" ? "DAMAGED" : "AVAILABLE"),
       description: `${data.vendor || "Vendor not specified"} | ${data.condition}`,
     };
 

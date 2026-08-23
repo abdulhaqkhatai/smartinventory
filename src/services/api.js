@@ -103,4 +103,33 @@ export const inventoryAPI = {
   getStockHistory: (itemId) => api.get(`/inventory/history/${itemId}`),
 };
 
+// ============== ASSET API METHODS ==============
+export const assetAPI = {
+  getAll: (params = {}) => api.get('/assets', { params }),
+  getById: (id) => api.get(`/assets/${id}`),
+  create: (data) => api.post('/assets', data),
+  update: (id, data) => api.put(`/assets/${id}`, data),
+  delete: (id) => api.delete(`/assets/${id}`),
+  getHistory: (id) => api.get(`/assets/${id}/history`),
+};
+
+// ============== ISSUE API METHODS ==============
+export const issueAPI = {
+  getAll: (params = {}) => api.get('/issues', { params }),
+  getById: (id) => api.get(`/issues/${id}`),
+  create: (data) => api.post('/issues', data),
+};
+
+// ============== RETURN API METHODS ==============
+export const returnAPI = {
+  getAll: (params = {}) => api.get('/returns', { params }),
+  getById: (id) => api.get(`/returns/${id}`),
+  create: (data) => api.post('/returns', data),
+};
+
+// ============== REPORT API METHODS ==============
+export const reportAPI = {
+  getReportData: (reportType, params = {}) => api.get(`/reports/${reportType}`, { params }),
+};
+
 export default api;

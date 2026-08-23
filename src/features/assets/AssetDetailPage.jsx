@@ -17,12 +17,13 @@ import {
   TextField,
   MenuItem,
 } from '@mui/material';
-import { ArrowBack, PersonAdd, PersonRemove, Devices } from '@mui/icons-material';
+import { ArrowBack, PersonAdd, PersonRemove } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useSnackbar } from 'notistack';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 import { mockUsers } from '../../services/mockData';
-import { assignAsset, unassignAsset } from './assetsSlice';
+import { assignAsset, unassignAsset, updateAsset, addAsset } from './assetsSlice';
+import api from '../../services/api';
 
 const AssetDetailPage = () => {
   const { id } = useParams();
@@ -33,11 +34,90 @@ const AssetDetailPage = () => {
   const asset = useSelector((state) =>
     state.assets.assets.find((a) => String(a.id) === String(id))
   );
+  const { user } = useSelector((state) => state.auth);
+  const canAssign = user?.role === 'Admin' || user?.role === 'Store Manager';
 
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [assignedUser, setAssignedUser] = useState(mockUsers[0]?.name || '');
   const [department, setDepartment] = useState('Engineering');
   const [location, setLocation] = useState('Building A, Floor 2');
+  const [loading, setLoading] = useState(!asset);
+
+  React.useEffect(() => {
+    if (!asset) {
+      Promise.all([
+        api.get(`/assets/${id}`),
+        api.get(`/issues`).catch(() => ({ data: [] }))
+      ])
+        .then(([assetResponse, issuesResponse]) => {
+          const fetchedAsset = assetResponse?.data?.data || assetResponse?.data;
+          const rawIssues = Array.isArray(issuesResponse?.data) ? issuesResponse.data : (issuesResponse?.data?.data || []);
+          
+          if (fetchedAsset) {
+            const isIssued = String(fetchedAsset.status).toLowerCase() === "issued";
+            let assignedTo = null;
+            let fetchedDepartment = null;
+
+            if (isIssued) {
+              const latestIssues = rawIssues.filter(i => 
+                (i.asset_id || i.asset?.id || i.asset_details?.id) === fetchedAsset.id
+              );
+              if (latestIssues.length > 0) {
+                const issue = latestIssues[latestIssues.length - 1]; // Assuming order or just taking last
+                const notes = typeof issue.notes === 'string' ? issue.notes : JSON.stringify(issue.notes || {});
+                
+                assignedTo = issue.issuedTo || issue.issued_to || issue.employee || issue.employee_name || issue.user || "";
+                if (!assignedTo) {
+                    const match = notes.match(/Issued To\s*:\s*([^\n,]+)/i);
+                    if (match) assignedTo = match[1].trim();
+                }
+                if (!assignedTo) {
+                   try {
+                      const parsed = JSON.parse(notes);
+                      assignedTo = parsed.issuedTo;
+                   } catch(e) {}
+                }
+
+                fetchedDepartment = issue.department || issue.department_name || "";
+                if (!fetchedDepartment) {
+                   try {
+                      const parsed = JSON.parse(notes);
+                      fetchedDepartment = parsed.department;
+                   } catch(e) {}
+                }
+              }
+            }
+
+            dispatch(addAsset({
+              id: fetchedAsset.id,
+              code: fetchedAsset.asset_code,
+              name: fetchedAsset.asset_name,
+              type: fetchedAsset.category || "Other",
+              serialNo: fetchedAsset.serial_number || "",
+              purchaseDate: fetchedAsset.purchase_date || "",
+              warrantyExpiry: fetchedAsset.warranty_expiry || "",
+              cost: fetchedAsset.purchase_price || 0,
+              vendor: fetchedAsset.vendor || "",
+              condition: fetchedAsset.status === "DAMAGED" ? "Needs Repair" : "Good",
+              status: isIssued ? "in-use" : "available",
+              assignedTo: assignedTo || null,
+              department: fetchedDepartment || null,
+              location: fetchedAsset.location || "",
+            }));
+          }
+        })
+        .catch(err => {
+          console.error("Failed to fetch asset", err);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [asset, id, dispatch]);
+
+  if (loading) {
+    return <Box sx={{ p: 4, textAlign: 'center' }}><Typography>Loading...</Typography></Box>;
+  }
 
   if (!asset) {
     return (
@@ -50,16 +130,57 @@ const AssetDetailPage = () => {
     );
   }
 
-  const handleAssignSubmit = () => {
-    dispatch(assignAsset({ id: asset.id, assignedTo: assignedUser, department, location }));
-    enqueueSnackbar(`Asset assigned to ${assignedUser}`, { variant: 'success' });
-    setAssignDialogOpen(false);
+  const handleAssignSubmit = async () => {
+    try {
+      await api.put(`/assets/${asset.id}`, {
+        status: 'ISSUED',
+        location: location
+      });
+      
+      await api.post('/issues', {
+        asset_id: asset.id,
+        user_id: 1,
+        issue_date: new Date().toISOString().split('T')[0] + ' 00:00:00',
+        issue_condition: 'Good',
+        notes: JSON.stringify({
+          issuedTo: assignedUser,
+          department: department,
+          remarks: "Assigned from Asset Details Page"
+        })
+      });
+
+      dispatch(assignAsset({ id: asset.id, assignedTo: assignedUser, department, location }));
+      enqueueSnackbar(`Asset assigned to ${assignedUser}`, { variant: 'success' });
+      setAssignDialogOpen(false);
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'Failed to assign asset', { variant: 'error' });
+    }
   };
 
-  const handleUnassign = () => {
+  const handleUnassign = async () => {
     if (window.confirm(`Unassign asset from ${asset.assignedTo}?`)) {
-      dispatch(unassignAsset(asset.id));
-      enqueueSnackbar('Asset unassigned and returned to available inventory', { variant: 'info' });
+      try {
+        await api.put(`/assets/${asset.id}`, {
+          status: 'AVAILABLE'
+        });
+
+        await api.post('/returns', {
+          asset_id: asset.id,
+          user_id: 1,
+          return_date: new Date().toISOString().split('T')[0] + ' 00:00:00',
+          return_condition: 'Good',
+          notes: JSON.stringify({
+            returnedBy: asset.assignedTo,
+            department: asset.department,
+            remarks: "Unassigned from Asset Details Page"
+          })
+        });
+
+        dispatch(unassignAsset(asset.id));
+        enqueueSnackbar('Asset unassigned and returned to available inventory', { variant: 'info' });
+      } catch (error) {
+        enqueueSnackbar(error?.message || 'Failed to unassign asset', { variant: 'error' });
+      }
     }
   };
 
@@ -142,18 +263,22 @@ const AssetDetailPage = () => {
                     <Typography variant="body2" color="text.secondary">Department: {asset.department}</Typography>
                     <Typography variant="body2" color="text.secondary">Location: {asset.location}</Typography>
                   </Box>
-                  <Button fullWidth variant="outlined" color="error" startIcon={<PersonRemove />} onClick={handleUnassign}>
-                    Unassign & Return to Stock
-                  </Button>
+                  {canAssign && (
+                    <Button fullWidth variant="outlined" color="error" startIcon={<PersonRemove />} onClick={handleUnassign}>
+                      Unassign & Return to Stock
+                    </Button>
+                  )}
                 </Box>
               ) : (
                 <Box>
                   <Typography variant="body2" color="text.secondary" mb={2}>
                     This asset is currently in inventory and available for deployment.
                   </Typography>
-                  <Button fullWidth variant="contained" startIcon={<PersonAdd />} onClick={() => setAssignDialogOpen(true)}>
-                    Assign to Employee
-                  </Button>
+                  {canAssign && (
+                    <Button fullWidth variant="contained" startIcon={<PersonAdd />} onClick={() => setAssignDialogOpen(true)}>
+                      Assign to Employee
+                    </Button>
+                  )}
                 </Box>
               )}
             </CardContent>

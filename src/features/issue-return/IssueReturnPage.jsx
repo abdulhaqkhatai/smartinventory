@@ -106,6 +106,27 @@ const IssueReturnPage = () => {
     returns = [],
   } = useSelector((state) => state.issueReturn || {});
 
+  const { user } = useSelector((state) => state.auth);
+
+  const isAdmin = user?.role === 'Admin';
+  const isStoreManager = user?.role === 'Store Manager';
+  const isEmployee = user?.role === 'Employee';
+  const canIssueReturn = isAdmin || isStoreManager;
+
+  const filteredIssues = useMemo(() => {
+    if (isEmployee) {
+      return issues.filter(i => i.issuedTo === user?.name);
+    }
+    return issues;
+  }, [issues, isEmployee, user]);
+
+  const filteredReturns = useMemo(() => {
+    if (isEmployee) {
+      return returns.filter(r => r.returnedBy === user?.name);
+    }
+    return returns;
+  }, [returns, isEmployee, user]);
+
 
   // -------------------------------------------------------
   // Load Issues & Returns
@@ -531,7 +552,7 @@ const IssueReturnPage = () => {
     const departments = {};
 
 
-    issues.forEach((issue) => {
+    filteredIssues.forEach((issue) => {
       const department = getText(
         issue.department,
         "General"
@@ -551,7 +572,7 @@ const IssueReturnPage = () => {
     });
 
 
-    returns.forEach((ret) => {
+    filteredReturns.forEach((ret) => {
       const department = getText(
         ret.department,
         "General"
@@ -572,7 +593,7 @@ const IssueReturnPage = () => {
 
 
     return Object.values(departments);
-  }, [issues, returns]);
+  }, [filteredIssues, filteredReturns]);
 
 
   // -------------------------------------------------------
@@ -625,23 +646,25 @@ const IssueReturnPage = () => {
             animate={{ opacity: 1 }}
           >
 
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "flex-end",
-                mb: 2,
-              }}
-            >
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() =>
-                  setIssueDialogOpen(true)
-                }
+            {canIssueReturn && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  mb: 2,
+                }}
               >
-                Issue Items
-              </Button>
-            </Box>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() =>
+                    setIssueDialogOpen(true)
+                  }
+                >
+                  Issue Items
+                </Button>
+              </Box>
+            )}
 
 
             <Paper
@@ -651,7 +674,7 @@ const IssueReturnPage = () => {
               }}
             >
               <DataGrid
-                rows={issues}
+                rows={filteredIssues}
                 columns={issueColumns}
                 pageSizeOptions={[10, 25, 50]}
                 initialState={{
@@ -679,24 +702,26 @@ const IssueReturnPage = () => {
             animate={{ opacity: 1 }}
           >
 
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "flex-end",
-                mb: 2,
-              }}
-            >
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<ReturnIcon />}
-                onClick={() =>
-                  setReturnDialogOpen(true)
-                }
+            {canIssueReturn && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  mb: 2,
+                }}
               >
-                Record Return
-              </Button>
-            </Box>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<ReturnIcon />}
+                  onClick={() =>
+                    setReturnDialogOpen(true)
+                  }
+                >
+                  Record Return
+                </Button>
+              </Box>
+            )}
 
 
             <Paper
@@ -706,7 +731,7 @@ const IssueReturnPage = () => {
               }}
             >
               <DataGrid
-                rows={returns}
+                rows={filteredReturns}
                 columns={returnColumns}
                 pageSizeOptions={[10, 25, 50]}
                 initialState={{
@@ -760,7 +785,7 @@ const IssueReturnPage = () => {
                         fontWeight: "bold",
                       }}
                     >
-                      {issues.length}
+                      {filteredIssues.length}
                     </Typography>
 
                   </CardContent>
@@ -788,7 +813,7 @@ const IssueReturnPage = () => {
                         fontWeight: "bold",
                       }}
                     >
-                      {returns.length}
+                      {filteredReturns.length}
                     </Typography>
 
                   </CardContent>

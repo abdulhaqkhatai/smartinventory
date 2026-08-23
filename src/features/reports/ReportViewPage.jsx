@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   Box,
   Card,
-  CardContent,
   Typography,
   Button,
   TextField,
@@ -13,7 +13,6 @@ import {
 import { DataGrid } from "@mui/x-data-grid";
 import {
   ArrowBack,
-  Download,
   PictureAsPdf,
   TableChart,
 } from "@mui/icons-material";
@@ -36,6 +35,8 @@ const ReportViewPage = () => {
 
   const [startDate, setStartDate] = useState("2024-01-01");
   const [endDate, setEndDate] = useState("2025-12-31");
+
+  const { user } = useSelector((state) => state.auth);
 
   // Determine report data and columns based on route parameter
   let reportTitle = "";
@@ -160,6 +161,9 @@ const ReportViewPage = () => {
         { field: "department", headerName: "Department", width: 140 },
       ];
       rows = [...mockIssueTransactions, ...mockReturnTransactions];
+      if (user?.role === 'Employee') {
+        rows = rows.filter(r => r.issuedTo === user.name || r.returnedBy === user.name);
+      }
       break;
 
     case "asset":
@@ -184,6 +188,9 @@ const ReportViewPage = () => {
         },
       ];
       rows = mockAssets;
+      if (user?.role === 'Employee') {
+        rows = rows.filter(r => r.assignedTo === user.name);
+      }
       break;
 
     default:

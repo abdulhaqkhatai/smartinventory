@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Box,
   Card,
-  CardContent,
   Typography,
   Button,
   Chip,
@@ -17,7 +16,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import { Add, Search, Edit, Delete, Visibility } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import { useSnackbar } from "notistack";
-import { formatCurrency, formatDate } from "../../utils/helpers";
+import { formatCurrency } from "../../utils/helpers";
 import api from "../../services/api";
 import AssetFormDialog from "./AssetFormDialog";
 import { deleteAsset, setAssets } from "./assetsSlice";
@@ -27,6 +26,13 @@ const AssetListPage = () => {
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
   const { assets } = useSelector((state) => state.assets);
+  const { user } = useSelector((state) => state.auth);
+
+  const isAdmin = user?.role === 'Admin';
+  const isStoreManager = user?.role === 'Store Manager';
+  const isEmployee = user?.role === 'Employee';
+  const canAddEdit = isAdmin || isStoreManager;
+  const canDelete = isAdmin;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
@@ -36,30 +42,72 @@ const AssetListPage = () => {
   useEffect(() => {
     const loadAssets = async () => {
       try {
-        const response = await api.get("/assets");
-        const rows = response?.data || [];
+        const [assetsResponse, issuesResponse] = await Promise.all([
+          api.get("/assets"),
+          api.get("/issues").catch(() => ({ data: [] }))
+        ]);
+        
+        const rawAssets = assetsResponse?.data || [];
+        const rawIssues = Array.isArray(issuesResponse.data) ? issuesResponse.data : (issuesResponse.data?.data || []);
+        
+        const latestIssues = {};
+        rawIssues.forEach(issue => {
+          const assetId = issue.asset_id || issue.asset?.id || issue.asset_details?.id;
+          if (assetId) {
+             latestIssues[assetId] = issue;
+          }
+        });
+
         dispatch(
           setAssets(
-            rows.map((asset) => ({
-              id: asset.id,
-              code: asset.asset_code,
-              name: asset.asset_name,
-              type: asset.category || "Other",
-              serialNo: asset.serial_number || "",
-              purchaseDate: asset.purchase_date || "",
-              warrantyExpiry: asset.warranty_expiry || "",
-              cost: asset.purchase_price || 0,
-              vendor: asset.vendor || "",
-              condition: asset.status === "DAMAGED" ? "Needs Repair" : "Good",
-              status:
-                String(asset.status).toLowerCase() === "issued"
-                  ? "in-use"
-                  : "available",
-              assignedTo: null,
-              department: null,
-              location: asset.location || "",
-            })),
-          ),
+            rawAssets.map((asset) => {
+               const isIssued = String(asset.status).toLowerCase() === "issued";
+               let assignedTo = null;
+               let department = null;
+               
+               if (isIssued && latestIssues[asset.id]) {
+                  const issue = latestIssues[asset.id];
+                  const notes = typeof issue.notes === 'string' ? issue.notes : JSON.stringify(issue.notes || {});
+                  
+                  assignedTo = issue.issuedTo || issue.issued_to || issue.employee || issue.employee_name || issue.user || "";
+                  if (!assignedTo) {
+                      const match = notes.match(/Issued To\s*:\s*([^\n,]+)/i);
+                      if (match) assignedTo = match[1].trim();
+                  }
+                  if (!assignedTo) {
+                     try {
+                        const parsed = JSON.parse(notes);
+                        assignedTo = parsed.issuedTo;
+                     } catch(e) {}
+                  }
+
+                  department = issue.department || issue.department_name || "";
+                  if (!department) {
+                     try {
+                        const parsed = JSON.parse(notes);
+                        department = parsed.department;
+                     } catch(e) {}
+                  }
+               }
+
+               return {
+                  id: asset.id,
+                  code: asset.asset_code,
+                  name: asset.asset_name,
+                  type: asset.category || "Other",
+                  serialNo: asset.serial_number || "",
+                  purchaseDate: asset.purchase_date || "",
+                  warrantyExpiry: asset.warranty_expiry || "",
+                  cost: asset.purchase_price || 0,
+                  vendor: asset.vendor || "",
+                  condition: asset.status === "DAMAGED" ? "Needs Repair" : "Good",
+                  status: isIssued ? "in-use" : "available",
+                  assignedTo: assignedTo || null,
+                  department: department || null,
+                  location: asset.location || "",
+               };
+            })
+          )
         );
       } catch (error) {
         console.error("Failed to fetch assets:", error);
@@ -157,27 +205,31 @@ const AssetListPage = () => {
               <Visibility fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Edit Asset">
-            <IconButton
-              size="small"
-              color="primary"
-              onClick={() => {
-                setEditingAsset(params.row);
-                setFormOpen(true);
-              }}
-            >
-              <Edit fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => handleDelete(params.row.id, params.row.name)}
-            >
-              <Delete fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canAddEdit && (
+            <Tooltip title="Edit Asset">
+              <IconButton
+                size="small"
+                color="primary"
+                onClick={() => {
+                  setEditingAsset(params.row);
+                  setFormOpen(true);
+                }}
+              >
+                <Edit fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+          {canDelete && (
+            <Tooltip title="Delete">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => handleDelete(params.row.id, params.row.name)}
+              >
+                <Delete fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
       ),
     },
@@ -186,6 +238,11 @@ const AssetListPage = () => {
   const types = ["All", "Laptop", "Desktop", "Printer", "Monitor", "Furniture"];
 
   const filteredAssets = assets.filter((asset) => {
+    // Role based filtering
+    if (isEmployee && asset.assignedTo !== user?.name) {
+      return false;
+    }
+
     const matchesSearch =
       asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       asset.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -215,16 +272,18 @@ const AssetListPage = () => {
             employee assignments
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => {
-            setEditingAsset(null);
-            setFormOpen(true);
-          }}
-        >
-          Register Asset
-        </Button>
+        {canAddEdit && (
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => {
+              setEditingAsset(null);
+              setFormOpen(true);
+            }}
+          >
+            Register Asset
+          </Button>
+        )}
       </Box>
 
       {/* Filter Row */}

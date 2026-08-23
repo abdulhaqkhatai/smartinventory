@@ -55,6 +55,16 @@ const createIssue = async (issueData) => {
     [asset_id],
   );
 
+  // Asset assignment insertion
+  await pool.execute(
+    `
+      INSERT INTO asset_assignments
+      (asset_id, user_id, status, assigned_date)
+      VALUES (?, ?, 'ACTIVE', ?)
+    `,
+    [asset_id, user_id, issue_date || new Date().toISOString().slice(0, 19).replace('T', ' ')]
+  );
+
   return {
     id: result.insertId,
     asset_id,
