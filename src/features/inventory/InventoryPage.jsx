@@ -20,6 +20,8 @@ import { motion } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { useSnackbar } from 'notistack';
 
+import { useNavigate } from 'react-router-dom';
+import AddIcon from '@mui/icons-material/Add';
 import {
   addStockMovement,
   fetchStockMovements,
@@ -35,6 +37,7 @@ import api from '../../services/api';
 const InventoryPage = () => {
   const [tabValue, setTabValue] = useState(0);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const {
     stockMovements,
@@ -255,15 +258,21 @@ const InventoryPage = () => {
     >
       <Box sx={{ p: 3 }}>
 
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 'bold',
-            mb: 3
-          }}
-        >
-          Inventory Management
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: 'bold' }}
+          >
+            Inventory Management
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/items')}
+          >
+            Manage Items
+          </Button>
+        </Box>
 
         <Paper sx={{ mb: 3 }}>
 

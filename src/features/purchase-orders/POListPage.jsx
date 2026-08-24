@@ -52,7 +52,7 @@ const POListPage = () => {
     }
 
     return purchaseOrders.filter(
-      (po) => po.status === status
+      (po) => String(po.status).toLowerCase() === status.toLowerCase()
     ).length;
   };
 
@@ -60,7 +60,7 @@ const POListPage = () => {
     filter === 'All'
       ? purchaseOrders
       : purchaseOrders.filter(
-          (po) => po.status === filter
+          (po) => String(po.status).toLowerCase() === filter.toLowerCase()
         );
 
   if (loading) {
