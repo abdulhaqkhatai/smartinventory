@@ -126,8 +126,18 @@ const DashboardPage = () => {
       try {
         setLoading(true);
         const response = await api.get('/reports/dashboard');
-        if (response) {
-          setDashboardStats(response);
+        const stats = response?.data || response;
+        if (stats) {
+          setDashboardStats(prev => ({
+            ...prev,
+            totalItems: Number(stats.totalItems ?? prev.totalItems),
+            lowStockItems: Number(stats.lowStockItems ?? prev.lowStockItems),
+            pendingIndents: Number(stats.pendingIndents ?? prev.pendingIndents),
+            pendingGRNs: Number(stats.pendingGRNs ?? prev.pendingGRNs),
+            assetsIssued: Number(stats.assetsIssued ?? prev.assetsIssued),
+            totalVendors: Number(stats.totalVendors ?? prev.totalVendors),
+            monthlyPurchaseValue: stats.monthlyPurchaseValue ?? prev.monthlyPurchaseValue,
+          }));
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);

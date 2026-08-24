@@ -6,9 +6,9 @@ export const fetchItems = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get('/items');
-      return response;
+      return Array.isArray(response) ? response : (response?.data || []);
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Failed to fetch items');
     }
   }
 );
@@ -20,7 +20,7 @@ export const createItem = createAsyncThunk(
       const response = await api.post('/items', itemData);
       return response;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Failed to create item');
     }
   }
 );
@@ -29,10 +29,10 @@ export const updateItemAsync = createAsyncThunk(
   'items/updateItem',
   async ({ id, itemData }, { rejectWithValue }) => {
     try {
-      await api.put(`/items/${id}`, itemData);
-      return { id, ...itemData };
+      const response = await api.put(`/items/${id}`, itemData);
+      return response || { id, ...itemData };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Failed to update item');
     }
   }
 );
@@ -44,7 +44,7 @@ export const deleteItemAsync = createAsyncThunk(
       await api.delete(`/items/${id}`);
       return id;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Failed to delete item');
     }
   }
 );
@@ -87,7 +87,7 @@ const itemsSlice = createSlice({
       })
       .addCase(createItem.fulfilled, (state, action) => {
         state.loading = false;
-        state.items.push(action.payload);
+        state.items.unshift(action.payload);
       })
       .addCase(createItem.rejected, (state, action) => {
         state.loading = false;
@@ -101,7 +101,7 @@ const itemsSlice = createSlice({
         state.loading = false;
         const index = state.items.findIndex(item => item.id === action.payload.id);
         if (index !== -1) {
-          state.items[index] = action.payload;
+          state.items[index] = { ...state.items[index], ...action.payload };
         }
       })
       .addCase(updateItemAsync.rejected, (state, action) => {

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Grid, MenuItem, Box, Typography } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Grid, MenuItem, Typography } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -13,7 +13,7 @@ const schema = yup.object().shape({
   status: yup.string().required('Status is required'),
   contact_person: yup.string().required('Contact person is required'),
   phone: yup.string().required('Phone number is required'),
-  email: yup.string().email('Invalid email'),
+  email: yup.string().email('Invalid email').nullable().transform((v) => (v === '' ? null : v)),
   address: yup.string(),
   gst_number: yup.string(),
   pan_number: yup.string(),
@@ -23,6 +23,7 @@ const schema = yup.object().shape({
   city: yup.string(),
   state: yup.string(),
   pincode: yup.string(),
+  rating: yup.number().min(1).max(5).default(4),
 });
 
 const VendorFormDialog = ({ open, onClose }) => {
@@ -34,33 +35,60 @@ const VendorFormDialog = ({ open, onClose }) => {
   const { control, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      name: '', status: 'active', contact_person: '', phone: '', email: '', address: '', city: '', state: '', pincode: '',
-      gst_number: '', pan_number: '', bank_name: '', bank_account: '', bank_ifsc: ''
+      name: '',
+      status: 'active',
+      contact_person: '',
+      phone: '',
+      email: '',
+      address: '',
+      city: '',
+      state: '',
+      pincode: '',
+      gst_number: '',
+      pan_number: '',
+      bank_name: '',
+      bank_account: '',
+      bank_ifsc: '',
+      rating: 4,
     }
   });
 
   useEffect(() => {
     if (selectedVendor && open) {
       reset({
-        name: selectedVendor.name,
-        status: selectedVendor.status,
-        contact_person: selectedVendor.contact_person,
-        phone: selectedVendor.phone,
-        email: selectedVendor.email,
-        address: selectedVendor.address,
-        city: selectedVendor.city,
-        state: selectedVendor.state,
-        pincode: selectedVendor.pincode,
-        gst_number: selectedVendor.gst_number,
-        pan_number: selectedVendor.pan_number,
-        bank_name: selectedVendor.bank_name,
-        bank_account: selectedVendor.bank_account,
-        bank_ifsc: selectedVendor.bank_ifsc,
+        name: selectedVendor.name || '',
+        status: selectedVendor.status || 'active',
+        contact_person: selectedVendor.contact_person || selectedVendor.contactPerson || '',
+        phone: selectedVendor.phone || '',
+        email: selectedVendor.email || '',
+        address: selectedVendor.address || '',
+        city: selectedVendor.city || '',
+        state: selectedVendor.state || '',
+        pincode: selectedVendor.pincode || '',
+        gst_number: selectedVendor.gst_number || selectedVendor.gst || '',
+        pan_number: selectedVendor.pan_number || selectedVendor.pan || '',
+        bank_name: selectedVendor.bank_name || selectedVendor.bankName || '',
+        bank_account: selectedVendor.bank_account || selectedVendor.accountNo || '',
+        bank_ifsc: selectedVendor.bank_ifsc || selectedVendor.ifsc || '',
+        rating: selectedVendor.rating || 4,
       });
     } else if (open) {
       reset({
-        name: '', status: 'active', contact_person: '', phone: '', email: '', address: '', city: '', state: '', pincode: '',
-        gst_number: '', pan_number: '', bank_name: '', bank_account: '', bank_ifsc: ''
+        name: '',
+        status: 'active',
+        contact_person: '',
+        phone: '',
+        email: '',
+        address: '',
+        city: '',
+        state: '',
+        pincode: '',
+        gst_number: '',
+        pan_number: '',
+        bank_name: '',
+        bank_account: '',
+        bank_ifsc: '',
+        rating: 4,
       });
     }
   }, [selectedVendor, open, reset]);
@@ -98,18 +126,18 @@ const VendorFormDialog = ({ open, onClose }) => {
             <SectionHeader title="Basic Information" />
             <Grid item xs={12} sm={8}>
               <Controller name="name" control={control} render={({ field }) => (
-                <TextField {...field} label="Vendor Name" fullWidth error={!!errors.name} helperText={errors.name?.message} />
+                <TextField {...field} label="Vendor Company Name" fullWidth error={!!errors.name} helperText={errors.name?.message} />
               )} />
             </Grid>
             <Grid item xs={12} sm={4}>
               <Controller name="status" control={control} render={({ field }) => (
                 <TextField {...field} select label="Status" fullWidth error={!!errors.status} helperText={errors.status?.message}>
-                  {['active', 'inactive', 'blacklisted'].map(s => <MenuItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</MenuItem>)}
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                  <MenuItem value="blacklisted">Blacklisted</MenuItem>
                 </TextField>
               )} />
             </Grid>
-
-            <SectionHeader title="Contact Information" />
             <Grid item xs={12} sm={6}>
               <Controller name="contact_person" control={control} render={({ field }) => (
                 <TextField {...field} label="Contact Person" fullWidth error={!!errors.contact_person} helperText={errors.contact_person?.message} />
@@ -120,35 +148,13 @@ const VendorFormDialog = ({ open, onClose }) => {
                 <TextField {...field} label="Phone Number" fullWidth error={!!errors.phone} helperText={errors.phone?.message} />
               )} />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <Controller name="email" control={control} render={({ field }) => (
-                <TextField {...field} label="Email Address" type="email" fullWidth error={!!errors.email} helperText={errors.email?.message} />
-              )} />
-            </Grid>
             <Grid item xs={12}>
-              <Controller name="address" control={control} render={({ field }) => (
-                <TextField {...field} label="Address" multiline rows={2} fullWidth error={!!errors.address} helperText={errors.address?.message} />
+              <Controller name="email" control={control} render={({ field }) => (
+                <TextField {...field} label="Email Address" fullWidth error={!!errors.email} helperText={errors.email?.message} />
               )} />
             </Grid>
 
-            <SectionHeader title="Location" />
-            <Grid item xs={12} sm={4}>
-              <Controller name="city" control={control} render={({ field }) => (
-                <TextField {...field} label="City" fullWidth error={!!errors.city} helperText={errors.city?.message} />
-              )} />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Controller name="state" control={control} render={({ field }) => (
-                <TextField {...field} label="State" fullWidth error={!!errors.state} helperText={errors.state?.message} />
-              )} />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Controller name="pincode" control={control} render={({ field }) => (
-                <TextField {...field} label="Pincode" fullWidth error={!!errors.pincode} helperText={errors.pincode?.message} />
-              )} />
-            </Grid>
-
-            <SectionHeader title="Tax Information" />
+            <SectionHeader title="Tax & Identification" />
             <Grid item xs={12} sm={6}>
               <Controller name="gst_number" control={control} render={({ field }) => (
                 <TextField {...field} label="GST Number" fullWidth error={!!errors.gst_number} helperText={errors.gst_number?.message} />
@@ -156,11 +162,11 @@ const VendorFormDialog = ({ open, onClose }) => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <Controller name="pan_number" control={control} render={({ field }) => (
-                <TextField {...field} label="PAN" fullWidth error={!!errors.pan_number} helperText={errors.pan_number?.message} />
+                <TextField {...field} label="PAN Number" fullWidth error={!!errors.pan_number} helperText={errors.pan_number?.message} />
               )} />
             </Grid>
 
-            <SectionHeader title="Bank Details" />
+            <SectionHeader title="Banking Details" />
             <Grid item xs={12} sm={4}>
               <Controller name="bank_name" control={control} render={({ field }) => (
                 <TextField {...field} label="Bank Name" fullWidth error={!!errors.bank_name} helperText={errors.bank_name?.message} />
@@ -174,6 +180,28 @@ const VendorFormDialog = ({ open, onClose }) => {
             <Grid item xs={12} sm={4}>
               <Controller name="bank_ifsc" control={control} render={({ field }) => (
                 <TextField {...field} label="IFSC Code" fullWidth error={!!errors.bank_ifsc} helperText={errors.bank_ifsc?.message} />
+              )} />
+            </Grid>
+
+            <SectionHeader title="Address Details" />
+            <Grid item xs={12}>
+              <Controller name="address" control={control} render={({ field }) => (
+                <TextField {...field} label="Street Address" multiline rows={2} fullWidth error={!!errors.address} helperText={errors.address?.message} />
+              )} />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Controller name="city" control={control} render={({ field }) => (
+                <TextField {...field} label="City" fullWidth error={!!errors.city} helperText={errors.city?.message} />
+              )} />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Controller name="state" control={control} render={({ field }) => (
+                <TextField {...field} label="State" fullWidth error={!!errors.state} helperText={errors.state?.message} />
+              )} />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Controller name="pincode" control={control} render={({ field }) => (
+                <TextField {...field} label="Pincode" fullWidth error={!!errors.pincode} helperText={errors.pincode?.message} />
               )} />
             </Grid>
           </Grid>

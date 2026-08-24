@@ -6,9 +6,9 @@ export const fetchVendors = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get('/vendors');
-      return response;
+      return Array.isArray(response) ? response : (response?.data || []);
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Failed to fetch vendors');
     }
   }
 );
@@ -20,7 +20,7 @@ export const createVendor = createAsyncThunk(
       const response = await api.post('/vendors', vendorData);
       return response;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Failed to create vendor');
     }
   }
 );
@@ -29,10 +29,10 @@ export const updateVendorAsync = createAsyncThunk(
   'vendors/updateVendor',
   async ({ id, vendorData }, { rejectWithValue }) => {
     try {
-      await api.put(`/vendors/${id}`, vendorData);
-      return { id, ...vendorData };
+      const response = await api.put(`/vendors/${id}`, vendorData);
+      return response || { id, ...vendorData };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Failed to update vendor');
     }
   }
 );
@@ -44,7 +44,7 @@ export const deleteVendorAsync = createAsyncThunk(
       await api.delete(`/vendors/${id}`);
       return id;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Failed to delete vendor');
     }
   }
 );
@@ -87,7 +87,7 @@ const vendorsSlice = createSlice({
       })
       .addCase(createVendor.fulfilled, (state, action) => {
         state.loading = false;
-        state.vendors.push(action.payload);
+        state.vendors.unshift(action.payload);
       })
       .addCase(createVendor.rejected, (state, action) => {
         state.loading = false;
@@ -101,7 +101,7 @@ const vendorsSlice = createSlice({
         state.loading = false;
         const index = state.vendors.findIndex(v => v.id === action.payload.id);
         if (index !== -1) {
-          state.vendors[index] = action.payload;
+          state.vendors[index] = { ...state.vendors[index], ...action.payload };
         }
       })
       .addCase(updateVendorAsync.rejected, (state, action) => {
