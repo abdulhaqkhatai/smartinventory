@@ -16,7 +16,7 @@ const PODetailPage = () => {
   const navigate = useNavigate();
   
   const { purchaseOrders } = useSelector(state => state.purchaseOrders);
-  const po = purchaseOrders.find(p => p.id === id);
+  const po = purchaseOrders.find(p => String(p.id) === String(id));
 
   if (!po) {
     return <Typography>Purchase Order not found</Typography>;

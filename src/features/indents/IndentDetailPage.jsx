@@ -21,7 +21,7 @@ const IndentDetailPage = () => {
   const { enqueueSnackbar } = useSnackbar();
   
   const { indents } = useSelector(state => state.indents);
-  const indent = indents.find(i => i.id === id);
+  const indent = indents.find(i => String(i.id) === String(id));
   
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');

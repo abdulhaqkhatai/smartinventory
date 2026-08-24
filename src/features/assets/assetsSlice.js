@@ -29,7 +29,7 @@ const assetsSlice = createSlice({
     },
     assignAsset: (state, action) => {
       const { id, assignedTo, department, location } = action.payload;
-      const asset = state.assets.find((a) => a.id === id);
+      const asset = state.assets.find((a) => String(a.id) === String(id));
       if (asset) {
         asset.assignedTo = assignedTo;
         asset.department = department;

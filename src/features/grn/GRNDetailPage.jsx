@@ -11,7 +11,7 @@ const GRNDetailPage = () => {
   const navigate = useNavigate();
   const { grns } = useSelector(state => state.grn);
   
-  const grn = grns.find(g => g.id === Number(id));
+  const grn = grns.find(g => String(g.id) === String(id));
 
   if (!grn) {
     return <Typography sx={{ p: 3 }}>GRN not found.</Typography>;

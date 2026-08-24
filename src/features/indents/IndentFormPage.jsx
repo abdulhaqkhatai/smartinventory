@@ -42,7 +42,7 @@ const IndentFormPage = () => {
   const { indents } = useSelector(state => state.indents);
 
   const isEdit = Boolean(id);
-  const existingIndent = isEdit ? indents.find(i => i.id === id) : null;
+  const existingIndent = isEdit ? indents.find(i => String(i.id) === String(id)) : null;
 
   const { control, handleSubmit, formState: { errors }, watch } = useForm({
     resolver: yupResolver(schema),
