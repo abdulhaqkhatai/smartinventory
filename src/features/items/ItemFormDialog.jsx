@@ -123,7 +123,10 @@ const ItemFormDialog = ({ open, onClose }) => {
             <Grid item xs={12} sm={4}>
               <Controller name="category" control={control} render={({ field }) => (
                 <TextField {...field} select label="Category" fullWidth error={!!errors.category} helperText={errors.category?.message}>
-                  {mockCategories.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                  {mockCategories.map(c => {
+                    const catName = typeof c === 'object' ? c.name : c;
+                    return <MenuItem key={catName} value={catName}>{catName}</MenuItem>;
+                  })}
                 </TextField>
               )} />
             </Grid>
@@ -135,7 +138,10 @@ const ItemFormDialog = ({ open, onClose }) => {
             <Grid item xs={12} sm={4}>
               <Controller name="unit" control={control} render={({ field }) => (
                 <TextField {...field} select label="Unit" fullWidth error={!!errors.unit} helperText={errors.unit?.message}>
-                  {mockUnits.map(u => <MenuItem key={u} value={u}>{u}</MenuItem>)}
+                  {mockUnits.map(u => {
+                    const unitName = typeof u === 'object' ? (u.code || u.name) : u;
+                    return <MenuItem key={unitName} value={unitName}>{unitName}</MenuItem>;
+                  })}
                 </TextField>
               )} />
             </Grid>

@@ -179,9 +179,14 @@ const ItemListPage = () => {
           sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { bgcolor: alpha('#0A1929', 0.5) } }}
         >
           <MenuItem value="All">All Categories</MenuItem>
-          {mockCategories.map(cat => (
-            <MenuItem key={cat} value={cat}>{cat}</MenuItem>
-          ))}
+          {mockCategories.map(cat => {
+            const catName = typeof cat === 'object' ? cat.name : cat;
+            return (
+              <MenuItem key={catName} value={catName}>
+                {catName}
+              </MenuItem>
+            );
+          })}
         </TextField>
       </Paper>
 
