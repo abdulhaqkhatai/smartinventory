@@ -3,12 +3,6 @@ import * as inventoryController from '../controllers/inventoryController.js';
 
 const router = express.Router();
 
-// Get all stock movements/transactions
-router.get('/', inventoryController.getAllStockMovements);
-
-// Get stock movement by ID
-router.get('/:id', inventoryController.getStockMovementById);
-
 // Get current stock levels for all items
 router.get('/stock/levels', inventoryController.getStockLevels);
 
@@ -35,5 +29,11 @@ router.get('/low-stock', inventoryController.getLowStockItems);
 
 // Get stock movement history
 router.get('/history/:itemId', inventoryController.getStockHistory);
+
+// Get all stock movements/transactions
+router.get('/', inventoryController.getAllStockMovements);
+
+// Get stock movement by ID
+router.get('/:id', inventoryController.getStockMovementById);
 
 export default router;

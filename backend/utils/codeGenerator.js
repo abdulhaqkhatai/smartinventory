@@ -24,9 +24,10 @@ export const generateCode = async (prefix) => {
     }
 
     codeCounters[prefix]++;
-    const sequence = String(codeCounters[prefix]).padStart(3, '0');
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const sequence = String(codeCounters[prefix]).padStart(2, '0');
 
-    return `${prefix}-${year}-${sequence}`;
+    return `${prefix}-${year}-${timestamp}-${sequence}`;
   } catch (error) {
     console.error('Error generating code:', error);
     throw error;
