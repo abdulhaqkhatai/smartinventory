@@ -1,55 +1,30 @@
 import db from '../config/db.js';
 
-const fallbackItems = [
-  {
-    id: 1,
-    code: 'ITM-1001',
-    name: 'HP LaserJet Toner 12A',
-    category: 'Office Supplies',
-    current_stock: 18,
-    min_stock: 5,
-    max_stock: 60,
-    reorder_level: 8,
-    unit_price: 2450,
-  },
-  {
-    id: 2,
-    code: 'ITM-1002',
-    name: 'Laptop Stand',
-    category: 'Accessories',
-    current_stock: 4,
-    min_stock: 3,
-    max_stock: 30,
-    reorder_level: 5,
-    unit_price: 1200,
-  },
-];
+const fallbackItems = [];
+const fallbackMovements = [];
 
-const fallbackMovements = [
-  {
-    id: 1,
-    item_id: 1,
-    date: '2024-12-24',
-    type: 'Stock In',
-    quantity: 5,
-    reference: 'GRN-2024-001',
-    warehouse: 'Main Store',
-    performed_by: 'Priya Sharma',
-    remarks: 'Stock received from GRN-2024-001',
-  },
-];
+const mapMovementRow = (row) => {
+  if (!row) return row;
+  let mappedType = row.movement_type;
+  if (mappedType === 'IN') mappedType = 'Stock In';
+  else if (mappedType === 'OUT') mappedType = 'Issue';
+  else if (mappedType === 'TRANSFER') mappedType = 'Transfer';
+  else if (mappedType === 'ADJUSTMENT') mappedType = 'Adjustment';
+
+  return {
+    ...row,
+    type: mappedType,
+    reference: row.reference_code,
+    warehouse: row.to_location || row.from_location || 'Main Store',
+    remarks: row.notes,
+    date: row.date ? new Date(row.date).toISOString().split('T')[0] : null
+  };
+};
 
 const applyMovementFilters = (rows, filters = {}) => {
   let result = [...rows];
-
-  if (filters.type) {
-    result = result.filter((row) => row.type === filters.type);
-  }
-
-  if (filters.itemId) {
-    result = result.filter((row) => Number(row.item_id) === Number(filters.itemId));
-  }
-
+  if (filters.type) result = result.filter((row) => row.type === filters.type);
+  if (filters.itemId) result = result.filter((row) => Number(row.item_id) === Number(filters.itemId));
   result.sort((a, b) => new Date(b.date) - new Date(a.date));
   return result;
 };
@@ -57,12 +32,17 @@ const applyMovementFilters = (rows, filters = {}) => {
 // Get all stock movements with filters
 export const getAllStockMovements = async (filters = {}, limit = 20, offset = 0) => {
   try {
-    let query = 'SELECT * FROM stock_movements WHERE 1=1';
+    let query = 'SELECT * FROM inventory_movements WHERE 1=1';
     const values = [];
 
     if (filters.type) {
-      query += ' AND type = ?';
-      values.push(filters.type);
+      query += ' AND movement_type = ?';
+      let mappedType = filters.type;
+      if (mappedType === 'Stock In') mappedType = 'IN';
+      else if (mappedType === 'Issue') mappedType = 'OUT';
+      else if (mappedType === 'Transfer') mappedType = 'TRANSFER';
+      else if (mappedType === 'Adjustment') mappedType = 'ADJUSTMENT';
+      values.push(mappedType);
     }
 
     if (filters.itemId) {
@@ -74,9 +54,9 @@ export const getAllStockMovements = async (filters = {}, limit = 20, offset = 0)
     values.push(parseInt(limit) || 20, parseInt(offset) || 0);
 
     const [movements] = await db.query(query, values);
-    return movements;
+    return movements.map(mapMovementRow);
   } catch (error) {
-    console.warn('Database error fetching stock movements, using fallback data:', error.message);
+    console.warn('Database error fetching stock movements:', error.message);
     const rows = applyMovementFilters(fallbackMovements, filters);
     const start = Number.parseInt(offset, 10) || 0;
     const pageSize = Number.parseInt(limit, 10) || 20;
@@ -87,12 +67,17 @@ export const getAllStockMovements = async (filters = {}, limit = 20, offset = 0)
 // Get count of stock movements
 export const getStockMovementCount = async (filters = {}) => {
   try {
-    let query = 'SELECT COUNT(*) as count FROM stock_movements WHERE 1=1';
+    let query = 'SELECT COUNT(*) as count FROM inventory_movements WHERE 1=1';
     const values = [];
 
     if (filters.type) {
-      query += ' AND type = ?';
-      values.push(filters.type);
+      query += ' AND movement_type = ?';
+      let mappedType = filters.type;
+      if (mappedType === 'Stock In') mappedType = 'IN';
+      else if (mappedType === 'Issue') mappedType = 'OUT';
+      else if (mappedType === 'Transfer') mappedType = 'TRANSFER';
+      else if (mappedType === 'Adjustment') mappedType = 'ADJUSTMENT';
+      values.push(mappedType);
     }
 
     if (filters.itemId) {
@@ -111,10 +96,10 @@ export const getStockMovementCount = async (filters = {}) => {
 export const getStockMovementById = async (id) => {
   try {
     const [movements] = await db.query(
-      'SELECT * FROM stock_movements WHERE id = ?',
+      'SELECT * FROM inventory_movements WHERE id = ?',
       [id]
     );
-    return movements[0] || null;
+    return mapMovementRow(movements[0]) || null;
   } catch (error) {
     return fallbackMovements.find((row) => row.id === Number(id)) || null;
   }
@@ -148,42 +133,33 @@ export const getItemStock = async (itemId) => {
   }
 };
 
+const getItemDetails = async (itemId) => {
+  const [items] = await db.query('SELECT * FROM items WHERE id = ?', [itemId]);
+  return items[0] || { code: 'N/A', name: 'Unknown Item' };
+};
+
 // Record stock in (from GRN)
 export const recordStockIn = async (movementData) => {
   try {
     const { itemId, quantity, reference, warehouse, performedBy, remarks } = movementData;
-    const date = new Date().toISOString().split('T')[0];
-
+    
     await db.query(
       'UPDATE items SET quantity_in_stock = quantity_in_stock + ? WHERE id = ?',
       [quantity, itemId]
     );
 
+    const item = await getItemDetails(itemId);
+
     const [result] = await db.query(
-      `INSERT INTO stock_movements (item_id, date, type, quantity, reference, warehouse, performed_by, remarks)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [itemId, date, 'Stock In', quantity, reference, warehouse || 'Main Store', performedBy, remarks || null]
+      `INSERT INTO inventory_movements (reference_code, movement_type, item_id, item_code, item_name, quantity, to_location, performed_by, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [reference || 'GRN-LOCAL', 'IN', itemId, item.code, item.name, quantity, warehouse || 'Main Store', performedBy, remarks || null]
     );
 
     return getStockMovementById(result.insertId);
   } catch (error) {
-    const item = fallbackItems.find((entry) => Number(entry.id) === Number(movementData.itemId));
-    if (item) {
-      item.current_stock += Number(movementData.quantity || 0);
-    }
-    const newRow = {
-      id: Date.now(),
-      item_id: movementData.itemId,
-      date: new Date().toISOString().split('T')[0],
-      type: 'Stock In',
-      quantity: Number(movementData.quantity || 0),
-      reference: movementData.reference || 'GRN-LOCAL',
-      warehouse: movementData.warehouse || 'Main Store',
-      performed_by: movementData.performedBy || 'System',
-      remarks: movementData.remarks || null,
-    };
-    fallbackMovements.push(newRow);
-    return newRow;
+    console.error(error);
+    throw error;
   }
 };
 
@@ -191,38 +167,24 @@ export const recordStockIn = async (movementData) => {
 export const recordStockOut = async (movementData) => {
   try {
     const { itemId, quantity, reference, warehouse, performedBy, remarks } = movementData;
-    const date = new Date().toISOString().split('T')[0];
 
     await db.query(
       'UPDATE items SET quantity_in_stock = quantity_in_stock - ? WHERE id = ?',
       [quantity, itemId]
     );
 
+    const item = await getItemDetails(itemId);
+
     const [result] = await db.query(
-      `INSERT INTO stock_movements (item_id, date, type, quantity, reference, warehouse, performed_by, remarks)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [itemId, date, 'Issue', quantity, reference, warehouse || 'Main Store', performedBy, remarks || null]
+      `INSERT INTO inventory_movements (reference_code, movement_type, item_id, item_code, item_name, quantity, from_location, performed_by, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [reference || 'ISS-LOCAL', 'OUT', itemId, item.code, item.name, quantity, warehouse || 'Main Store', performedBy, remarks || null]
     );
 
     return getStockMovementById(result.insertId);
   } catch (error) {
-    const item = fallbackItems.find((entry) => Number(entry.id) === Number(movementData.itemId));
-    if (item) {
-      item.current_stock -= Number(movementData.quantity || 0);
-    }
-    const newRow = {
-      id: Date.now(),
-      item_id: movementData.itemId,
-      date: new Date().toISOString().split('T')[0],
-      type: 'Issue',
-      quantity: Number(movementData.quantity || 0),
-      reference: movementData.reference || 'ISS-LOCAL',
-      warehouse: movementData.warehouse || 'Main Store',
-      performed_by: movementData.performedBy || 'System',
-      remarks: movementData.remarks || null,
-    };
-    fallbackMovements.push(newRow);
-    return newRow;
+    console.error(error);
+    throw error;
   }
 };
 
@@ -230,29 +192,19 @@ export const recordStockOut = async (movementData) => {
 export const recordStockTransfer = async (movementData) => {
   try {
     const { itemId, quantity, fromWarehouse, toWarehouse, reference, performedBy, remarks } = movementData;
-    const date = new Date().toISOString().split('T')[0];
+
+    const item = await getItemDetails(itemId);
 
     const [result] = await db.query(
-      `INSERT INTO stock_movements (item_id, date, type, quantity, reference, warehouse, performed_by, remarks)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [itemId, date, 'Transfer', quantity, reference, `${fromWarehouse} → ${toWarehouse}`, performedBy, remarks || null]
+      `INSERT INTO inventory_movements (reference_code, movement_type, item_id, item_code, item_name, quantity, from_location, to_location, performed_by, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [reference || 'TR-LOCAL', 'TRANSFER', itemId, item.code, item.name, quantity, fromWarehouse, toWarehouse, performedBy, remarks || null]
     );
 
     return getStockMovementById(result.insertId);
   } catch (error) {
-    const newRow = {
-      id: Date.now(),
-      item_id: movementData.itemId,
-      date: new Date().toISOString().split('T')[0],
-      type: 'Transfer',
-      quantity: Number(movementData.quantity || 0),
-      reference: movementData.reference || 'TR-LOCAL',
-      warehouse: `${movementData.fromWarehouse || 'Main'} → ${movementData.toWarehouse || 'Secondary'}`,
-      performed_by: movementData.performedBy || 'System',
-      remarks: movementData.remarks || null,
-    };
-    fallbackMovements.push(newRow);
-    return newRow;
+    console.error(error);
+    throw error;
   }
 };
 
@@ -260,84 +212,38 @@ export const recordStockTransfer = async (movementData) => {
 export const recordStockAdjustment = async (movementData) => {
   try {
     const { itemId, quantity, reason, reference, warehouse, performedBy, remarks } = movementData;
-    const date = new Date().toISOString().split('T')[0];
+
+    const item = await getItemDetails(itemId);
+    const prevStock = item.quantity_in_stock || 0;
+    const newStock = prevStock + Number(quantity);
 
     await db.query(
-      'UPDATE items SET quantity_in_stock = quantity_in_stock + ? WHERE id = ?',
-      [quantity, itemId]
+      'UPDATE items SET quantity_in_stock = ? WHERE id = ?',
+      [newStock, itemId]
+    );
+
+    const adjustmentType = quantity > 0 ? 'INCREASE' : 'DECREASE';
+
+    await db.query(
+      `INSERT INTO stock_adjustments (item_id, adjustment_type, quantity, previous_stock, new_stock, reason, warehouse)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [itemId, adjustmentType, Math.abs(quantity), prevStock, newStock, reason || 'Manual Adjustment', warehouse || 'Main Store']
     );
 
     const [result] = await db.query(
-      `INSERT INTO stock_movements (item_id, date, type, quantity, reference, warehouse, performed_by, remarks)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [itemId, date, `Adjustment (${reason})`, quantity, reference, warehouse || 'Main Store', performedBy, remarks || null]
+      `INSERT INTO inventory_movements (reference_code, movement_type, item_id, item_code, item_name, quantity, from_location, to_location, performed_by, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [reference || 'ADJ-LOCAL', 'ADJUSTMENT', itemId, item.code, item.name, Math.abs(quantity), warehouse || 'Main Store', warehouse || 'Main Store', performedBy, remarks || reason]
     );
 
     return getStockMovementById(result.insertId);
   } catch (error) {
-    const item = fallbackItems.find((entry) => Number(entry.id) === Number(movementData.itemId));
-    if (item) {
-      item.current_stock += Number(movementData.quantity || 0);
-    }
-    const newRow = {
-      id: Date.now(),
-      item_id: movementData.itemId,
-      date: new Date().toISOString().split('T')[0],
-      type: `Adjustment (${movementData.reason || 'General'})`,
-      quantity: Number(movementData.quantity || 0),
-      reference: movementData.reference || 'ADJ-LOCAL',
-      warehouse: movementData.warehouse || 'Main Store',
-      performed_by: movementData.performedBy || 'System',
-      remarks: movementData.remarks || null,
-    };
-    fallbackMovements.push(newRow);
-    return newRow;
+    console.error(error);
+    throw error;
   }
 };
 
 // Get stock movements for specific item
 export const getItemMovements = async (itemId, limit = 20, offset = 0) => {
-  try {
-    const [movements] = await db.query(
-      `SELECT * FROM stock_movements WHERE item_id = ? ORDER BY date DESC LIMIT ? OFFSET ?`,
-      [itemId, parseInt(limit) || 20, parseInt(offset) || 0]
-    );
-    return movements;
-  } catch (error) {
-    const rows = fallbackMovements.filter((row) => Number(row.item_id) === Number(itemId));
-    const start = Number.parseInt(offset, 10) || 0;
-    const pageSize = Number.parseInt(limit, 10) || 20;
-    return rows.slice(start, start + pageSize);
-  }
-};
-
-// Get low stock items
-export const getLowStockItems = async () => {
-  try {
-    const [items] = await db.query(
-      `SELECT id, code, name, quantity_in_stock AS current_stock, min_stock, reorder_level
-       FROM items
-       WHERE quantity_in_stock <= reorder_level
-       ORDER BY quantity_in_stock ASC`
-    );
-    return items;
-  } catch (error) {
-    return fallbackItems.filter((item) => Number(item.current_stock) <= Number(item.reorder_level));
-  }
-};
-
-// Get stock history for item
-export const getStockHistory = async (itemId) => {
-  try {
-    const [movements] = await db.query(
-      `SELECT date, type, quantity, reference, warehouse, performed_by, remarks
-       FROM stock_movements
-       WHERE item_id = ?
-       ORDER BY date DESC`,
-      [itemId]
-    );
-    return movements;
-  } catch (error) {
-    return fallbackMovements.filter((row) => Number(row.item_id) === Number(itemId));
-  }
+  return getAllStockMovements({ itemId }, limit, offset);
 };

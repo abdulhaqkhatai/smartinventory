@@ -44,7 +44,7 @@ const getDashboardReport = async () => {
     let pendingGRNs = 0;
     try {
       const [grnResult] = await pool.query(`
-        SELECT COUNT(*) AS pending_grn FROM grns WHERE status IN ('partial')
+        SELECT COUNT(*) AS pending_grn FROM grn_receipts WHERE status IN ('draft', 'pending')
       `);
       pendingGRNs = Number(grnResult[0]?.pending_grn || 0);
     } catch {
