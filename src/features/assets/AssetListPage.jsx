@@ -28,9 +28,11 @@ const AssetListPage = () => {
   const { assets } = useSelector((state) => state.assets);
   const { user } = useSelector((state) => state.auth);
 
-  const isAdmin = user?.role === 'Admin';
-  const isStoreManager = user?.role === 'Store Manager';
-  const isEmployee = user?.role === 'Employee';
+  const userRole = (user?.role || '').toLowerCase();
+  const isAdmin = userRole === 'admin';
+  const isStoreManager = userRole === 'store_manager' || userRole === 'store manager';
+  const isEmployee = userRole === 'employee';
+  const isPurchaseManager = userRole === 'purchase_manager' || userRole === 'purchase manager';
   const canAddEdit = isAdmin || isStoreManager;
   const canDelete = isAdmin;
 
@@ -205,8 +207,8 @@ const AssetListPage = () => {
               <Visibility fontSize="small" />
             </IconButton>
           </Tooltip>
-          {true && (
-            <Tooltip title="Edit Asset">
+          {canAddEdit && (
+            <Tooltip title="Edit">
               <IconButton
                 size="small"
                 color="primary"
@@ -242,6 +244,12 @@ const AssetListPage = () => {
     if (isEmployee && asset.assignedTo !== user?.name) {
       return false;
     }
+    if (isStoreManager && asset.location !== user?.location && asset.location !== (user?.location || 'General')) {
+      // Allow if asset location matches user location, or both are blank/General
+      const userLoc = (user?.location || 'General').toLowerCase();
+      const assetLoc = (asset.location || 'General').toLowerCase();
+      if (userLoc !== assetLoc) return false;
+    }
 
     const matchesSearch =
       asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -272,7 +280,7 @@ const AssetListPage = () => {
             employee assignments
           </Typography>
         </Box>
-        {true && (
+        {canAddEdit && (
           <Button
             variant="contained"
             startIcon={<Add />}

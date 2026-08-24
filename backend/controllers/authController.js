@@ -28,6 +28,7 @@ export const authController = {
           name: user.username,
           email: user.email,
           role: user.role,
+          location: user.location || 'General',
         },
       });
     } catch (error) {

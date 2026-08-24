@@ -130,6 +130,24 @@ const IssueReturnPage = () => {
 
 
   // -------------------------------------------------------
+  // Handle Status Update
+  // -------------------------------------------------------
+  const handleStatusUpdate = async (type, id, newStatus) => {
+    try {
+      if (type === 'issue') {
+        await api.patch(`/issues/${id}/status`, { status: newStatus });
+      } else {
+        await api.patch(`/returns/${id}/status`, { status: newStatus });
+      }
+      // Reload page for simplicity to fetch fresh data
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to update status", error);
+      alert("Failed to update status");
+    }
+  };
+
+  // -------------------------------------------------------
   // Load Issues & Returns
   // -------------------------------------------------------
   useEffect(() => {
@@ -450,8 +468,39 @@ const IssueReturnPage = () => {
           </span>
         ),
       },
+      {
+        field: "status",
+        headerName: "Status",
+        flex: 1,
+        minWidth: 120,
+        renderCell: (params) => (
+          <span style={{
+            color: params.value === 'Pending' ? 'orange' : params.value === 'Rejected' ? 'red' : 'green',
+            fontWeight: 'bold'
+          }}>
+            {params.value}
+          </span>
+        ),
+      },
+      {
+        field: "actions",
+        headerName: "Actions",
+        flex: 1.5,
+        minWidth: 180,
+        renderCell: (params) => {
+          if (params.row.status === 'Pending' && (isAdmin || isStoreManager)) {
+            return (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button size="small" variant="contained" color="success" onClick={() => handleStatusUpdate('issue', params.row.id, 'Approved')}>Approve</Button>
+                <Button size="small" variant="contained" color="error" onClick={() => handleStatusUpdate('issue', params.row.id, 'Rejected')}>Reject</Button>
+              </Box>
+            );
+          }
+          return null;
+        },
+      }
     ],
-    []
+    [isAdmin, isStoreManager]
   );
 
 
@@ -541,8 +590,39 @@ const IssueReturnPage = () => {
           </span>
         ),
       },
+      {
+        field: "status",
+        headerName: "Status",
+        flex: 1,
+        minWidth: 120,
+        renderCell: (params) => (
+          <span style={{
+            color: params.value === 'Pending' ? 'orange' : params.value === 'Rejected' ? 'red' : 'green',
+            fontWeight: 'bold'
+          }}>
+            {params.value}
+          </span>
+        ),
+      },
+      {
+        field: "actions",
+        headerName: "Actions",
+        flex: 1.5,
+        minWidth: 180,
+        renderCell: (params) => {
+          if (params.row.status === 'Pending' && (isAdmin || isStoreManager)) {
+            return (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button size="small" variant="contained" color="success" onClick={() => handleStatusUpdate('return', params.row.id, 'Approved')}>Approve</Button>
+                <Button size="small" variant="contained" color="error" onClick={() => handleStatusUpdate('return', params.row.id, 'Rejected')}>Reject</Button>
+              </Box>
+            );
+          }
+          return null;
+        },
+      }
     ],
-    []
+    [isAdmin, isStoreManager]
   );
 
 

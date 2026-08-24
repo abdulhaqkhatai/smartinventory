@@ -10,14 +10,13 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(100) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(50) DEFAULT 'user', -- 'admin', 'store_manager', 'purchase_manager', 'employee', 'user'
+  location VARCHAR(100) DEFAULT 'General',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_username (username),
   INDEX idx_role (role)
 );
 
--- ===================================
--- ITEMS TABLE (Item Master)
 -- ===================================
 CREATE TABLE IF NOT EXISTS items (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -291,6 +290,7 @@ CREATE TABLE IF NOT EXISTS issue_transactions (
     expected_return_date DATETIME,
     issue_condition VARCHAR(255),
     notes TEXT,
+    status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Approved',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_issue_asset (asset_id),
@@ -309,6 +309,7 @@ CREATE TABLE IF NOT EXISTS return_transactions (
     return_condition VARCHAR(255),
     damage_description TEXT,
     notes TEXT,
+    status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Approved',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_return_asset (asset_id),

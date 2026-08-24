@@ -67,13 +67,13 @@ app.use('/api/vendors', optionalAuth, vendorRoutes);
 app.use('/api/reports', optionalAuth, reportRoutes);
 
 // Additional Modules (Intern 2 & Intern 3)
-app.use('/api/assets', assetRoutes);
-app.use('/api/issues', issueRoutes);
-app.use('/api/returns', returnRoutes);
-app.use('/api/indents', indentRoutes);
-app.use('/api/purchase-orders', purchaseOrderRoutes);
-app.use('/api/grn', grnRoutes);
-app.use('/api/inventory', inventoryRoutes);
+app.use('/api/assets', optionalAuth, assetRoutes);
+app.use('/api/issues', optionalAuth, issueRoutes);
+app.use('/api/returns', optionalAuth, returnRoutes);
+app.use('/api/indents', optionalAuth, indentRoutes);
+app.use('/api/purchase-orders', optionalAuth, purchaseOrderRoutes);
+app.use('/api/grn', optionalAuth, grnRoutes);
+app.use('/api/inventory', optionalAuth, inventoryRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
