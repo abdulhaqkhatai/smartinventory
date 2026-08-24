@@ -61,6 +61,9 @@ const InventoryPage = () => {
     setTabValue(newValue);
   };
 
+  const { user } = useSelector(state => state.auth);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   if (loading) {
     return (
       <Box
@@ -169,9 +172,6 @@ const InventoryPage = () => {
 
   const mockLowStockItems = mockItems.filter(item => item.currentStock <= item.reorderLevel);
   const displayLowStockItems = lowStockItems?.length ? lowStockItems : mockLowStockItems;
-
-  const { user } = useSelector(state => state.auth);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAdjustmentSubmit = async (e) => {
     e.preventDefault();
