@@ -31,7 +31,7 @@ const IndentDetailPage = () => {
   }
 
   const handleApprove = () => {
-    dispatch(updateIndentStatus({ id, status: 'Approved', approvedBy: 'Manager User' }));
+    dispatch(updateIndentStatus({ id, status: 'approved', approvedBy: 'Manager User' }));
     enqueueSnackbar('Indent Approved', { variant: 'success' });
   };
 
@@ -40,7 +40,7 @@ const IndentDetailPage = () => {
       enqueueSnackbar('Please provide a reason for rejection', { variant: 'error' });
       return;
     }
-    dispatch(updateIndentStatus({ id, status: 'Rejected', rejectionReason: rejectReason }));
+    dispatch(updateIndentStatus({ id, status: 'rejected', rejectionReason: rejectReason }));
     setRejectDialogOpen(false);
     enqueueSnackbar('Indent Rejected', { variant: 'warning' });
   };
@@ -128,7 +128,7 @@ const IndentDetailPage = () => {
         </CardContent>
       </Card>
 
-      {indent.status === 'Submitted' && (
+      {String(indent.status).toLowerCase() === 'submitted' && (
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
           <Button 
             variant="outlined" 

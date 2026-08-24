@@ -245,14 +245,14 @@ const IndentFormPage = () => {
         <Button 
           variant="outlined" 
           startIcon={<SaveIcon />}
-          onClick={handleSubmit((data) => onSubmit(data, 'Draft'))}
+          onClick={handleSubmit((data) => onSubmit(data, 'draft'))}
         >
           Save as Draft
         </Button>
         <Button 
           variant="contained" 
           startIcon={<SendIcon />}
-          onClick={handleSubmit((data) => onSubmit(data, 'Submitted'))}
+          onClick={handleSubmit((data) => onSubmit(data, 'submitted'))}
         >
           Submit
         </Button>

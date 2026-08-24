@@ -105,14 +105,15 @@ export const getIndentById = async (id) => {
 // Create new indent
 export const createIndent = async (indentData) => {
   try {
-    const { requestedBy, department, items, remarks } = indentData;
+    const { requestedBy, department, items, remarks, status } = indentData;
     const code = await generateCode('IND');
     const date = new Date().toISOString().split('T')[0];
+    const finalStatus = status ? status.toLowerCase() : 'draft';
 
     const [result] = await db.query(
       `INSERT INTO indents (code, requested_by, department, date, status, items, remarks)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [code, requestedBy, department, date, 'draft', JSON.stringify(items), remarks || null]
+      [code, requestedBy, department, date, finalStatus, JSON.stringify(items), remarks || null]
     );
 
     return getIndentById(result.insertId);
@@ -125,7 +126,7 @@ export const createIndent = async (indentData) => {
       requested_by: indentData.requestedBy,
       department: indentData.department,
       date,
-      status: 'draft',
+      status: indentData.status ? indentData.status.toLowerCase() : 'draft',
       items: indentData.items || [],
       remarks: indentData.remarks || null,
       approved_by: null,

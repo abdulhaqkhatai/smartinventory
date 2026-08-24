@@ -84,7 +84,7 @@ export const getIndentById = async (req, res) => {
 // Create new indent
 export const createIndent = async (req, res) => {
   try {
-    const { requestedBy, department, items, remarks } = req.body;
+    const { requestedBy, department, items, remarks, status } = req.body;
 
     // Validation
     if (!requestedBy || !department || !items || items.length === 0) {
@@ -99,6 +99,7 @@ export const createIndent = async (req, res) => {
       department,
       items,
       remarks,
+      status,
     });
 
     res.status(201).json({ success: true, data: indent, message: 'Indent created successfully' });
