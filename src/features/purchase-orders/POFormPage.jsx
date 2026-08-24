@@ -16,6 +16,7 @@ import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import { useSnackbar } from 'notistack';
 import { addPurchaseOrder } from './purchaseOrdersSlice';
+import { fetchIndents } from '../indents/indentsSlice';
 import { mockVendors, mockIndents, mockItems } from '../../services/mockData';
 import { generateId, formatDate, formatCurrency } from '../../utils/helpers';
 import api from '../../services/api';
@@ -42,7 +43,11 @@ const POFormPage = () => {
   const { enqueueSnackbar } = useSnackbar();
   const { indents } = useSelector(state => state.indents);
 
-  const approvedIndents = indents.filter(i => i.status === 'Approved');
+  useEffect(() => {
+    dispatch(fetchIndents());
+  }, [dispatch]);
+
+  const approvedIndents = indents.filter(i => String(i.status).toLowerCase() === 'approved');
 
   const { control, handleSubmit, formState: { errors }, setValue } = useForm({
     resolver: yupResolver(schema),
