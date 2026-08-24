@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Card,
-  CardContent,
   Typography,
   Button,
   Chip,
@@ -12,126 +11,299 @@ import {
   Tooltip,
   TextField,
   InputAdornment,
-} from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
-import { Add, Search, Edit, Delete, Visibility } from '@mui/icons-material';
-import { motion } from 'framer-motion';
-import { useSnackbar } from 'notistack';
-import { formatCurrency, formatDate } from '../../utils/helpers';
-import AssetFormDialog from './AssetFormDialog';
-import { deleteAsset } from './assetsSlice';
+} from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
+import { Add, Search, Edit, Delete, Visibility } from "@mui/icons-material";
+import { motion } from "framer-motion";
+import { useSnackbar } from "notistack";
+import { formatCurrency } from "../../utils/helpers";
+import api from "../../services/api";
+import AssetFormDialog from "./AssetFormDialog";
+import { deleteAsset, setAssets } from "./assetsSlice";
 
 const AssetListPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
   const { assets } = useSelector((state) => state.assets);
+  const { user } = useSelector((state) => state.auth);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('All');
+  const isAdmin = user?.role === 'Admin';
+  const isStoreManager = user?.role === 'Store Manager';
+  const isEmployee = user?.role === 'Employee';
+  const canAddEdit = isAdmin || isStoreManager;
+  const canDelete = isAdmin;
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("All");
   const [formOpen, setFormOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
 
-  const handleDelete = (id, name) => {
+  useEffect(() => {
+    const loadAssets = async () => {
+      try {
+        const [assetsResponse, issuesResponse] = await Promise.all([
+          api.get("/assets"),
+          api.get("/issues").catch(() => ({ data: [] }))
+        ]);
+        
+        const rawAssets = assetsResponse?.data || [];
+        const rawIssues = Array.isArray(issuesResponse.data) ? issuesResponse.data : (issuesResponse.data?.data || []);
+        
+        const latestIssues = {};
+        rawIssues.forEach(issue => {
+          const assetId = issue.asset_id || issue.asset?.id || issue.asset_details?.id;
+          if (assetId) {
+             latestIssues[assetId] = issue;
+          }
+        });
+
+        dispatch(
+          setAssets(
+            rawAssets.map((asset) => {
+               const isIssued = String(asset.status).toLowerCase() === "issued";
+               let assignedTo = null;
+               let department = null;
+               
+               if (isIssued && latestIssues[asset.id]) {
+                  const issue = latestIssues[asset.id];
+                  const notes = typeof issue.notes === 'string' ? issue.notes : JSON.stringify(issue.notes || {});
+                  
+                  assignedTo = issue.issuedTo || issue.issued_to || issue.employee || issue.employee_name || issue.user || "";
+                  if (!assignedTo) {
+                      const match = notes.match(/Issued To\s*:\s*([^\n,]+)/i);
+                      if (match) assignedTo = match[1].trim();
+                  }
+                  if (!assignedTo) {
+                     try {
+                        const parsed = JSON.parse(notes);
+                        assignedTo = parsed.issuedTo;
+                     } catch(e) {}
+                  }
+
+                  department = issue.department || issue.department_name || "";
+                  if (!department) {
+                     try {
+                        const parsed = JSON.parse(notes);
+                        department = parsed.department;
+                     } catch(e) {}
+                  }
+               }
+
+               return {
+                  id: asset.id,
+                  code: asset.asset_code,
+                  name: asset.asset_name,
+                  type: asset.category || "Other",
+                  serialNo: asset.serial_number || "",
+                  purchaseDate: asset.purchase_date || "",
+                  warrantyExpiry: asset.warranty_expiry || "",
+                  cost: asset.purchase_price || 0,
+                  vendor: asset.vendor || "",
+                  condition: asset.status === "DAMAGED" ? "Needs Repair" : "Good",
+                  status: isIssued ? "in-use" : "available",
+                  assignedTo: assignedTo || null,
+                  department: department || null,
+                  location: asset.location || "",
+               };
+            })
+          )
+        );
+      } catch (error) {
+        console.error("Failed to fetch assets:", error);
+      }
+    };
+
+    loadAssets();
+  }, [dispatch]);
+
+  const handleDelete = async (id, name) => {
     if (window.confirm(`Are you sure you want to delete asset "${name}"?`)) {
-      dispatch(deleteAsset(id));
-      enqueueSnackbar('Asset deleted', { variant: 'info' });
+      try {
+        await api.delete(`/assets/${id}`);
+        dispatch(deleteAsset(id));
+        enqueueSnackbar("Asset deleted", { variant: "info" });
+      } catch (error) {
+        enqueueSnackbar(error?.message || "Failed to delete asset", {
+          variant: "error",
+        });
+      }
     }
   };
 
   const columns = [
-    { field: 'code', headerName: 'Asset Code', width: 120, renderCell: (params) => (
-      <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'primary.main' }}>
-        {params.value}
-      </Typography>
-    )},
-    { field: 'name', headerName: 'Asset Name', flex: 1, minWidth: 180 },
-    { field: 'type', headerName: 'Type', width: 120 },
-    { field: 'serialNo', headerName: 'Serial No', width: 140 },
     {
-      field: 'status',
-      headerName: 'Status',
+      field: "code",
+      headerName: "Asset Code",
+      width: 120,
+      renderCell: (params) => (
+        <Typography
+          variant="caption"
+          sx={{
+            fontFamily: "monospace",
+            fontWeight: 600,
+            color: "primary.main",
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+    { field: "name", headerName: "Asset Name", flex: 1, minWidth: 180 },
+    { field: "type", headerName: "Type", width: 120 },
+    { field: "serialNo", headerName: "Serial No", width: 140 },
+    {
+      field: "status",
+      headerName: "Status",
       width: 130,
       renderCell: (params) => {
         const map = {
-          'in-use': 'info',
-          'available': 'success',
-          'in-maintenance': 'warning',
-          'retired': 'default',
+          "in-use": "info",
+          available: "success",
+          "in-maintenance": "warning",
+          retired: "default",
         };
-        return <Chip label={params.value} color={map[params.value] || 'default'} size="small" />;
+        return (
+          <Chip
+            label={params.value}
+            color={map[params.value] || "default"}
+            size="small"
+          />
+        );
       },
     },
-    { field: 'assignedTo', headerName: 'Assigned To', width: 150, valueFormatter: (value) => value || 'Unassigned' },
-    { field: 'department', headerName: 'Department', width: 130, valueFormatter: (value) => value || '-' },
-    { field: 'cost', headerName: 'Cost', width: 120, valueFormatter: (value) => formatCurrency(value) },
     {
-      field: 'actions',
-      headerName: 'Actions',
+      field: "assignedTo",
+      headerName: "Assigned To",
+      width: 150,
+      valueFormatter: (value) => value || "Unassigned",
+    },
+    {
+      field: "department",
+      headerName: "Department",
+      width: 130,
+      valueFormatter: (value) => value || "-",
+    },
+    {
+      field: "cost",
+      headerName: "Cost",
+      width: 120,
+      valueFormatter: (value) => formatCurrency(value),
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
       width: 130,
       sortable: false,
       renderCell: (params) => (
         <Box>
           <Tooltip title="View Details">
-            <IconButton size="small" onClick={() => navigate(`/assets/${params.row.id}`)}>
+            <IconButton
+              size="small"
+              onClick={() => navigate(`/assets/${params.row.id}`)}
+            >
               <Visibility fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Edit Asset">
-            <IconButton size="small" color="primary" onClick={() => { setEditingAsset(params.row); setFormOpen(true); }}>
-              <Edit fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton size="small" color="error" onClick={() => handleDelete(params.row.id, params.row.name)}>
-              <Delete fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canAddEdit && (
+            <Tooltip title="Edit Asset">
+              <IconButton
+                size="small"
+                color="primary"
+                onClick={() => {
+                  setEditingAsset(params.row);
+                  setFormOpen(true);
+                }}
+              >
+                <Edit fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+          {canDelete && (
+            <Tooltip title="Delete">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => handleDelete(params.row.id, params.row.name)}
+              >
+                <Delete fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
       ),
     },
   ];
 
-  const types = ['All', 'Laptop', 'Desktop', 'Printer', 'Monitor', 'Furniture'];
+  const types = ["All", "Laptop", "Desktop", "Printer", "Monitor", "Furniture"];
 
   const filteredAssets = assets.filter((asset) => {
-    const matchesSearch = asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    // Role based filtering
+    if (isEmployee && asset.assignedTo !== user?.name) {
+      return false;
+    }
+
+    const matchesSearch =
+      asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       asset.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       asset.serialNo.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'All' || asset.type === typeFilter;
+    const matchesType = typeFilter === "All" || asset.type === typeFilter;
     return matchesSearch && matchesType;
   });
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+      <Box
+        sx={{
+          mb: 3,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
         <Box>
           <Typography variant="h4" fontWeight={700}>
             Asset Management
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Register and track corporate IT assets, furniture, warranties, and employee assignments
+            Register and track corporate IT assets, furniture, warranties, and
+            employee assignments
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => { setEditingAsset(null); setFormOpen(true); }}
-        >
-          Register Asset
-        </Button>
+        {canAddEdit && (
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => {
+              setEditingAsset(null);
+              setFormOpen(true);
+            }}
+          >
+            Register Asset
+          </Button>
+        )}
       </Box>
 
       {/* Filter Row */}
       <Card sx={{ mb: 3, p: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 2,
+          }}
+        >
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
             {types.map((t) => (
               <Chip
                 key={t}
                 label={t}
                 clickable
-                color={typeFilter === t ? 'primary' : 'default'}
+                color={typeFilter === t ? "primary" : "default"}
                 onClick={() => setTypeFilter(t)}
               />
             ))}

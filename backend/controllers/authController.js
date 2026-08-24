@@ -46,4 +46,25 @@ export const authController = {
       res.status(500).json({ message: error.message });
     }
   },
+
+  async changePassword(req, res) {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.userId;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Current password and new password are required' });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: 'New password must be at least 8 characters' });
+      }
+
+      await authService.changePassword(userId, currentPassword, newPassword);
+      res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(400).json({ message: error.message || 'Failed to change password' });
+    }
+  },
 };

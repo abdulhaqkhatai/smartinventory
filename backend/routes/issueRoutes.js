@@ -4,7 +4,7 @@ import {
   createIssueController,
   getAllIssuesController,
   getIssueByIdController,
-} from "../controller/issueController.js";
+} from "../controllers/issueController.js";
 
 const router = express.Router();
 

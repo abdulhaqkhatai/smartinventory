@@ -2,17 +2,18 @@
 -- Database Schema for Core Features & Integration
 
 -- ===================================
--- USERS TABLE (Authentication)
+-- USERS TABLE (Authentication & Roles)
 -- ===================================
 CREATE TABLE IF NOT EXISTS users (
   id INT PRIMARY KEY AUTO_INCREMENT,
   username VARCHAR(50) UNIQUE NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role VARCHAR(50) DEFAULT 'user',
+  role VARCHAR(50) DEFAULT 'user', -- 'admin', 'store_manager', 'purchase_manager', 'employee', 'user'
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_username (username)
+  INDEX idx_username (username),
+  INDEX idx_role (role)
 );
 
 -- ===================================
@@ -27,10 +28,12 @@ CREATE TABLE IF NOT EXISTS items (
   unit VARCHAR(50) DEFAULT 'Piece',
   hsn_code VARCHAR(50),
   gst_rate DECIMAL(5, 2) DEFAULT 18.00,
+  min_stock INT DEFAULT 0,
   reorder_level INT DEFAULT 0,
   max_stock INT DEFAULT 0,
   quantity_in_stock INT DEFAULT 0,
   unit_price DECIMAL(10, 2) DEFAULT 0.00,
+  image_url VARCHAR(500) DEFAULT '',
   description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -162,22 +165,25 @@ CREATE TABLE IF NOT EXISTS inventory_movements (
 );
 
 -- ===================================
--- SEED INITIAL USERS (password: admin123)
+-- SEED INITIAL USERS WITH ALL 4 ROLES (password: admin123)
 -- ===================================
 INSERT INTO users (username, email, password_hash, role) VALUES
 ('admin', 'admin@example.com', '$2a$10$l6vAWfZb5Yj/yGFX9SwO4.0kTDHM3.2akumKm.0A5fFtsVGlFhRYC', 'admin'),
-('user1', 'user1@example.com', '$2a$10$l6vAWfZb5Yj/yGFX9SwO4.0kTDHM3.2akumKm.0A5fFtsVGlFhRYC', 'user')
-ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash);
+('store_manager', 'store@example.com', '$2a$10$l6vAWfZb5Yj/yGFX9SwO4.0kTDHM3.2akumKm.0A5fFtsVGlFhRYC', 'store_manager'),
+('purchase_manager', 'purchase@example.com', '$2a$10$l6vAWfZb5Yj/yGFX9SwO4.0kTDHM3.2akumKm.0A5fFtsVGlFhRYC', 'purchase_manager'),
+('employee', 'employee@example.com', '$2a$10$l6vAWfZb5Yj/yGFX9SwO4.0kTDHM3.2akumKm.0A5fFtsVGlFhRYC', 'employee'),
+('user1', 'user1@example.com', '$2a$10$l6vAWfZb5Yj/yGFX9SwO4.0kTDHM3.2akumKm.0A5fFtsVGlFhRYC', 'employee')
+ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = VALUES(role);
 
 -- ===================================
 -- SEED INITIAL ITEMS
 -- ===================================
-INSERT IGNORE INTO items (code, name, category, brand, unit, hsn_code, gst_rate, reorder_level, max_stock, quantity_in_stock, unit_price) VALUES
-('ITM-0001', 'Laptop Dell XPS 13', 'Electronics', 'Dell', 'Piece', '8471.30', 18.00, 5, 20, 10, 85000.00),
-('ITM-0002', 'Wireless Mouse', 'Electronics', 'Logitech', 'Piece', '8517.62', 18.00, 20, 100, 50, 2500.00),
-('ITM-0003', 'USB-C Cable 2M', 'Accessories', 'Generic', 'Piece', '8544.30', 5.00, 50, 500, 200, 300.00),
-('ITM-0004', 'Monitor 27 Inch', 'Electronics', 'LG', 'Piece', '8528.72', 18.00, 5, 15, 8, 25000.00),
-('ITM-0005', 'Keyboard Mechanical', 'Accessories', 'Corsair', 'Piece', '8471.30', 18.00, 10, 50, 25, 8000.00);
+INSERT IGNORE INTO items (code, name, category, brand, unit, hsn_code, gst_rate, min_stock, reorder_level, max_stock, quantity_in_stock, unit_price, image_url) VALUES
+('ITM-0001', 'Laptop Dell XPS 13', 'Electronics', 'Dell', 'Piece', '8471.30', 18.00, 2, 5, 20, 10, 85000.00, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=200'),
+('ITM-0002', 'Wireless Mouse', 'Electronics', 'Logitech', 'Piece', '8517.62', 18.00, 10, 20, 100, 50, 2500.00, 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=200'),
+('ITM-0003', 'USB-C Cable 2M', 'Accessories', 'Generic', 'Piece', '8544.30', 5.00, 20, 50, 500, 200, 300.00, 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=200'),
+('ITM-0004', 'Monitor 27 Inch', 'Electronics', 'LG', 'Piece', '8528.72', 18.00, 2, 5, 15, 8, 25000.00, 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=200'),
+('ITM-0005', 'Keyboard Mechanical', 'Accessories', 'Corsair', 'Piece', '8471.30', 18.00, 5, 10, 50, 25, 8000.00, 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=200');
 
 -- ===================================
 -- SEED INITIAL VENDORS

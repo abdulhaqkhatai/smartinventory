@@ -5,10 +5,12 @@ export const formatItem = (item) => {
   const id = item.id;
   const code = item.code || `ITM-${String(id).padStart(4, '0')}`;
   const gst = Number(item.gst_rate ?? item.gstRate ?? 18);
+  const minStock = Number(item.min_stock ?? item.minStock ?? 0);
   const reorder = Number(item.reorder_level ?? item.reorderLevel ?? 0);
   const max = Number(item.max_stock ?? item.maxStock ?? 0);
   const stock = Number(item.quantity_in_stock ?? item.currentStock ?? 0);
   const price = Number(item.unit_price ?? item.unitPrice ?? 0);
+  const imageUrl = item.image_url || item.imageUrl || '';
 
   return {
     ...item,
@@ -22,6 +24,8 @@ export const formatItem = (item) => {
     hsn_code: item.hsn_code || item.hsn || '',
     gstRate: gst,
     gst_rate: gst,
+    minStock,
+    min_stock: minStock,
     reorderLevel: reorder,
     reorder_level: reorder,
     maxStock: max,
@@ -30,6 +34,8 @@ export const formatItem = (item) => {
     quantity_in_stock: stock,
     unitPrice: price,
     unit_price: price,
+    imageUrl,
+    image_url: imageUrl,
     description: item.description || '',
     created_at: item.created_at,
     updated_at: item.updated_at,
@@ -69,15 +75,17 @@ export const itemService = {
     const unit = itemData.unit || 'Piece';
     const hsn_code = itemData.hsn_code || itemData.hsn || '';
     const gst_rate = itemData.gst_rate ?? itemData.gstRate ?? 18;
+    const min_stock = itemData.min_stock ?? itemData.minStock ?? 0;
     const reorder_level = itemData.reorder_level ?? itemData.reorderLevel ?? 10;
     const max_stock = itemData.max_stock ?? itemData.maxStock ?? 100;
     const quantity_in_stock = itemData.quantity_in_stock ?? itemData.currentStock ?? 0;
     const unit_price = itemData.unit_price ?? itemData.unitPrice ?? 0;
+    const image_url = itemData.image_url || itemData.imageUrl || '';
     const description = itemData.description || '';
 
     const [result] = await pool.query(
-      'INSERT INTO items (name, category, brand, unit, hsn_code, gst_rate, reorder_level, max_stock, quantity_in_stock, unit_price, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, category, brand, unit, hsn_code, gst_rate, reorder_level, max_stock, quantity_in_stock, unit_price, description]
+      'INSERT INTO items (name, category, brand, unit, hsn_code, gst_rate, min_stock, reorder_level, max_stock, quantity_in_stock, unit_price, image_url, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, category, brand, unit, hsn_code, gst_rate, min_stock, reorder_level, max_stock, quantity_in_stock, unit_price, image_url, description]
     );
 
     const insertedId = result.insertId;
@@ -93,10 +101,12 @@ export const itemService = {
       unit,
       hsn_code,
       gst_rate,
+      min_stock,
       reorder_level,
       max_stock,
       quantity_in_stock,
       unit_price,
+      image_url,
       description,
     });
   },
@@ -108,15 +118,18 @@ export const itemService = {
     const unit = itemData.unit || 'Piece';
     const hsn_code = itemData.hsn_code || itemData.hsn || '';
     const gst_rate = itemData.gst_rate ?? itemData.gstRate ?? 18;
+    const min_stock = itemData.min_stock ?? itemData.minStock ?? 0;
     const reorder_level = itemData.reorder_level ?? itemData.reorderLevel ?? 10;
     const max_stock = itemData.max_stock ?? itemData.maxStock ?? 100;
     const quantity_in_stock = itemData.quantity_in_stock ?? itemData.currentStock ?? 0;
     const unit_price = itemData.unit_price ?? itemData.unitPrice ?? 0;
+    const image_url = itemData.image_url || itemData.imageUrl || '';
     const description = itemData.description || '';
+    const code = itemData.code || `ITM-${String(id).padStart(4, '0')}`;
 
     const [result] = await pool.query(
-      'UPDATE items SET name = ?, category = ?, brand = ?, unit = ?, hsn_code = ?, gst_rate = ?, reorder_level = ?, max_stock = ?, quantity_in_stock = ?, unit_price = ?, description = ? WHERE id = ?',
-      [name, category, brand, unit, hsn_code, gst_rate, reorder_level, max_stock, quantity_in_stock, unit_price, description, id]
+      'UPDATE items SET code = ?, name = ?, category = ?, brand = ?, unit = ?, hsn_code = ?, gst_rate = ?, min_stock = ?, reorder_level = ?, max_stock = ?, quantity_in_stock = ?, unit_price = ?, image_url = ?, description = ? WHERE id = ?',
+      [code, name, category, brand, unit, hsn_code, gst_rate, min_stock, reorder_level, max_stock, quantity_in_stock, unit_price, image_url, description, id]
     );
 
     if (result.affectedRows === 0) return null;

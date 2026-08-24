@@ -11,6 +11,11 @@ export const authService = {
     return rows[0] || null;
   },
 
+  async getUserById(id) {
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
+    return rows[0] || null;
+  },
+
   async generateToken(user) {
     const secret = process.env.JWT_SECRET || 'smart_inventory_jwt_secret_key_2026_secure';
     return jwt.sign(
@@ -35,5 +40,21 @@ export const authService = {
       [username, email, hashedPassword, role]
     );
     return { id: result.insertId, username, email, role };
+  },
+
+  async changePassword(userId, currentPassword, newPassword) {
+    const user = await this.getUserById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const isValid = await this.validatePassword(currentPassword, user.password_hash);
+    if (!isValid) {
+      throw new Error('Current password is incorrect');
+    }
+
+    const newHashedPassword = await this.hashPassword(newPassword);
+    await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [newHashedPassword, userId]);
+    return true;
   },
 };

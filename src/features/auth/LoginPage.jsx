@@ -50,7 +50,9 @@ const LoginPage = () => {
 
   const demoAccounts = [
     { role: 'Admin', username: 'admin' },
-    { role: 'User', username: 'user1' },
+    { role: 'Store Manager', username: 'store_manager' },
+    { role: 'Purchase Manager', username: 'purchase_manager' },
+    { role: 'Employee', username: 'employee' },
   ];
 
   return (

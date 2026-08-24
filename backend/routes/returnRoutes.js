@@ -4,7 +4,7 @@ import {
   createReturnController,
   getAllReturnsController,
   getReturnByIdController,
-} from "../controller/returnController.js";
+} from "../controllers/returnController.js";
 
 const router = express.Router();
 

@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Box, Typography, Button, TextField, MenuItem, IconButton, Chip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Paper } from '@mui/material';
+import { Box, Typography, Button, TextField, MenuItem, IconButton, Chip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Paper, Avatar } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { alpha, useTheme } from '@mui/material/styles';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, Inventory2 as InventoryIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '../../utils/helpers';
 import { mockCategories } from '../../services/mockData';
@@ -36,7 +36,13 @@ const ItemListPage = () => {
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const code = item.code || '';
+      const name = item.name || '';
+      const brand = item.brand || '';
+      const matchesSearch =
+        name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        brand.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
       return matchesSearch && matchesCategory;
     });
@@ -62,20 +68,41 @@ const ItemListPage = () => {
   };
 
   const columns = [
-    { field: 'code', headerName: 'Code', width: 100 },
-    { field: 'name', headerName: 'Name', flex: 1, minWidth: 200 },
+    {
+      field: 'image',
+      headerName: '',
+      width: 60,
+      sortable: false,
+      renderCell: (params) => (
+        <Avatar
+          src={params.row.imageUrl || params.row.image_url}
+          alt={params.row.name}
+          sx={{ width: 36, height: 36, bgcolor: alpha('#00BFA6', 0.2), color: '#00BFA6' }}
+        >
+          <InventoryIcon fontSize="small" />
+        </Avatar>
+      ),
+    },
+    { field: 'code', headerName: 'Code', width: 110 },
+    { field: 'name', headerName: 'Item Name', flex: 1, minWidth: 200 },
     { field: 'category', headerName: 'Category', width: 130 },
-    { field: 'brand', headerName: 'Brand', width: 130 },
+    { field: 'brand', headerName: 'Brand', width: 120 },
     { field: 'unit', headerName: 'Unit', width: 80 },
     { field: 'hsn', headerName: 'HSN', width: 100 },
-    { field: 'gstRate', headerName: 'GST %', width: 90 },
+    {
+      field: 'gstRate',
+      headerName: 'GST %',
+      width: 90,
+      renderCell: (params) => `${params.value ?? 18}%`,
+    },
     {
       field: 'currentStock',
       headerName: 'Stock',
       width: 120,
       renderCell: (params) => {
-        const { currentStock, reorderLevel } = params.row;
-        let color = 'default';
+        const currentStock = params.row.currentStock ?? params.row.quantity_in_stock ?? 0;
+        const reorderLevel = params.row.reorderLevel ?? params.row.reorder_level ?? 0;
+        let color = 'success';
         if (currentStock <= reorderLevel) {
           color = 'error';
         } else if (currentStock <= reorderLevel * 1.5) {
@@ -95,20 +122,20 @@ const ItemListPage = () => {
     {
       field: 'unitPrice',
       headerName: 'Price',
-      width: 120,
-      renderCell: (params) => formatCurrency(params.value)
+      width: 130,
+      renderCell: (params) => formatCurrency(params.value ?? 0)
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 110,
       sortable: false,
       renderCell: (params) => (
         <Box>
-          <IconButton size="small" onClick={() => handleEdit(params.row)} color="primary">
+          <IconButton size="small" onClick={() => handleEdit(params.row)} color="primary" title="Edit Item">
             <EditIcon fontSize="small" />
           </IconButton>
-          <IconButton size="small" onClick={() => handleDeleteClick(params.row)} color="error">
+          <IconButton size="small" onClick={() => handleDeleteClick(params.row)} color="error" title="Delete Item">
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -135,7 +162,7 @@ const ItemListPage = () => {
 
       <Paper sx={{ p: 2, mb: 2, bgcolor: '#132F4C', borderRadius: 2, display: 'flex', gap: 2 }}>
         <TextField
-          placeholder="Search by code or name..."
+          placeholder="Search by code, name, brand..."
           variant="outlined"
           size="small"
           value={searchTerm}
@@ -162,6 +189,7 @@ const ItemListPage = () => {
         <DataGrid
           rows={filteredItems}
           columns={columns}
+          loading={loading}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
           pageSizeOptions={[10, 25, 50]}
           disableRowSelectionOnClick

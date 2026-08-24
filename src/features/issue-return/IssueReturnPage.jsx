@@ -1,133 +1,925 @@
-import React, { useState } from 'react';
-import { Box, Typography, Tabs, Tab, Paper, Button, Grid, Card, CardContent } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
-import { Add as AddIcon, KeyboardReturn as ReturnIcon } from '@mui/icons-material';
-import { motion } from 'framer-motion';
-import { useSelector } from 'react-redux';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import IssueFormDialog from './IssueFormDialog';
-import ReturnFormDialog from './ReturnFormDialog';
-import { formatDate } from '../../utils/helpers';
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Box,
+  Typography,
+  Tabs,
+  Tab,
+  Paper,
+  Button,
+  Grid,
+  Card,
+  CardContent,
+} from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
+import {
+  Add as AddIcon,
+  KeyboardReturn as ReturnIcon,
+} from "@mui/icons-material";
+import { motion } from "framer-motion";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
+import IssueFormDialog from "./IssueFormDialog";
+import ReturnFormDialog from "./ReturnFormDialog";
+import { setIssues, setReturns } from "./issueReturnSlice";
+import api from "../../services/api";
+import { formatDate } from "../../utils/helpers";
+
+
+// ---------------------------------------------------------
+// Helper: Convert objects/arrays into safe React text
+// ---------------------------------------------------------
+const getText = (value, fallback = "") => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => getText(item))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (typeof value === "object") {
+    return (
+      value.name ||
+      value.code ||
+      value.asset_name ||
+      value.employee_name ||
+      value.department_name ||
+      value.title ||
+      value.email ||
+      value.id ||
+      fallback
+    );
+  }
+
+  return fallback;
+};
+
+
+// ---------------------------------------------------------
+// Extract value from notes
+// ---------------------------------------------------------
+const extractFromNotes = (notes, label, fallback) => {
+  if (!notes) return fallback;
+
+  const text = String(notes);
+
+  const regex = new RegExp(
+    `${label}\\s*:\\s*([^\\n,]+)`,
+    "i"
+  );
+
+  const match = text.match(regex);
+
+  return match?.[1]?.trim() || fallback;
+};
+
+
+// ---------------------------------------------------------
+// Main Component
+// ---------------------------------------------------------
 const IssueReturnPage = () => {
   const [tabValue, setTabValue] = useState(0);
-  const { issues, returns } = useSelector(state => state.issueReturn);
-  
+
   const [issueDialogOpen, setIssueDialogOpen] = useState(false);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
 
-  const issueColumns = [
-    { field: 'code', headerName: 'Issue Ref', flex: 1 },
-    { field: 'date', headerName: 'Date', flex: 1, valueFormatter: (params) => formatDate(params.value) },
-    { field: 'issuedTo', headerName: 'Issued To', flex: 1.5 },
-    { field: 'department', headerName: 'Department', flex: 1 },
-    { 
-      field: 'itemsCount', 
-      headerName: 'Total Items', 
-      flex: 1,
-      valueGetter: (params, row) => row.items?.length || 0 
-    },
-    { field: 'issuedBy', headerName: 'Issued By', flex: 1 },
-  ];
+  const dispatch = useDispatch();
 
-  const returnColumns = [
-    { field: 'code', headerName: 'Return Ref', flex: 1 },
-    { field: 'issueRef', headerName: 'Issue Ref', flex: 1 },
-    { field: 'date', headerName: 'Date', flex: 1, valueFormatter: (params) => formatDate(params.value) },
-    { field: 'returnedBy', headerName: 'Returned By', flex: 1.5 },
-    { field: 'department', headerName: 'Department', flex: 1 },
-    { field: 'receivedBy', headerName: 'Received By', flex: 1 },
-  ];
+  const {
+    issues = [],
+    returns = [],
+  } = useSelector((state) => state.issueReturn || {});
 
-  // Mock aggregate data for chart
-  const deptSummary = [
-    { name: 'Engineering', issues: 15, returns: 2 },
-    { name: 'Operations', issues: 8, returns: 1 },
-    { name: 'Purchase', issues: 4, returns: 0 },
-    { name: 'IT', issues: 12, returns: 3 },
-  ];
+  const { user } = useSelector((state) => state.auth);
 
+  const isAdmin = user?.role === 'Admin';
+  const isStoreManager = user?.role === 'Store Manager';
+  const isEmployee = user?.role === 'Employee';
+  const canIssueReturn = isAdmin || isStoreManager;
+
+  const filteredIssues = useMemo(() => {
+    if (isEmployee) {
+      return issues.filter(i => i.issuedTo === user?.name);
+    }
+    return issues;
+  }, [issues, isEmployee, user]);
+
+  const filteredReturns = useMemo(() => {
+    if (isEmployee) {
+      return returns.filter(r => r.returnedBy === user?.name);
+    }
+    return returns;
+  }, [returns, isEmployee, user]);
+
+
+  // -------------------------------------------------------
+  // Load Issues & Returns
+  // -------------------------------------------------------
+  useEffect(() => {
+    const loadTransactions = async () => {
+      try {
+        const [issuesResponse, returnsResponse] = await Promise.all([
+          api.get("/issues"),
+          api.get("/returns"),
+        ]);
+
+        console.log("ISSUES API RESPONSE:", issuesResponse.data);
+        console.log("RETURNS API RESPONSE:", returnsResponse.data);
+
+
+        // ---------------------------------------------------
+        // ISSUE DATA
+        // ---------------------------------------------------
+        const rawIssues = Array.isArray(issuesResponse.data)
+          ? issuesResponse.data
+          : issuesResponse.data?.data || [];
+
+
+        const issueRows = rawIssues.map((issue) => {
+          const notes = getText(issue.notes, "");
+
+          const issuedTo =
+            getText(
+              issue.issuedTo ||
+              issue.issued_to ||
+              issue.employee ||
+              issue.employee_name ||
+              issue.user,
+              ""
+            ) ||
+            extractFromNotes(
+              notes,
+              "Issued To",
+              "Unknown"
+            );
+
+
+          const department =
+            getText(
+              issue.department ||
+              issue.department_name,
+              ""
+            ) ||
+            extractFromNotes(
+              notes,
+              "Department",
+              "General"
+            );
+
+
+          const assetName = getText(
+            issue.asset_name ||
+            issue.asset ||
+            issue.asset_details ||
+            issue.item,
+            "Asset"
+          );
+
+
+          // NOTE: `code` can come back from the API as an object
+          // (e.g. the asset { id, name, code }) instead of a string,
+          // so it MUST be run through getText() here as well as in
+          // the column's renderCell (defense in depth).
+          const code = getText(
+            issue.code || issue.issue_code,
+            `ISS-${issue.id}`
+          );
+
+
+          return {
+            id: issue.id,
+
+            asset_id: getText(
+              issue.asset_id ||
+              issue.asset?.id ||
+              issue.asset_details?.id
+            ),
+
+            code,
+
+            date:
+              issue.issue_date ||
+              issue.created_at ||
+              issue.date ||
+              "",
+
+            issuedTo,
+
+            department,
+
+            issuedBy:
+              getText(
+                issue.issuedBy ||
+                issue.issued_by ||
+                issue.created_by ||
+                issue.user,
+                ""
+              ) || "Rajesh Kumar",
+
+            status:
+              getText(issue.status, "issued"),
+
+            remarks: notes,
+
+            assetName,
+
+            items: [
+              {
+                itemName: assetName,
+                quantity: 1,
+              },
+            ],
+          };
+        });
+
+
+        // ---------------------------------------------------
+        // RETURN DATA
+        // ---------------------------------------------------
+        const rawReturns = Array.isArray(returnsResponse.data)
+          ? returnsResponse.data
+          : returnsResponse.data?.data || [];
+
+
+        const returnRows = rawReturns.map((ret) => {
+          const notes = getText(ret.notes, "");
+
+
+          const returnedBy =
+            getText(
+              ret.returnedBy ||
+              ret.returned_by ||
+              ret.employee ||
+              ret.employee_name ||
+              ret.user,
+              ""
+            ) ||
+            extractFromNotes(
+              notes,
+              "Returned By",
+              "Employee"
+            );
+
+
+          const department =
+            getText(
+              ret.department ||
+              ret.department_name,
+              ""
+            ) ||
+            extractFromNotes(
+              notes,
+              "Department",
+              "General"
+            );
+
+
+          const receivedBy =
+            getText(
+              ret.receivedBy ||
+              ret.received_by ||
+              ret.received_user ||
+              ret.user,
+              ""
+            ) || "Rajesh Kumar";
+
+
+          const assetId = getText(
+            ret.asset_id ||
+            ret.asset?.id ||
+            ret.asset_details?.id
+          );
+
+
+          // Same object-vs-string guard as issues.code above.
+          const code = getText(
+            ret.code || ret.return_code,
+            `RTN-${ret.id}`
+          );
+
+          const issueRef = getText(
+            ret.issue_ref || ret.issue_code,
+            assetId ? `ISS-${assetId}` : "-"
+          );
+
+
+          return {
+            id: ret.id,
+
+            code,
+
+            date:
+              ret.return_date ||
+              ret.created_at ||
+              ret.date ||
+              "",
+
+            returnedBy,
+
+            department,
+
+            receivedBy,
+
+            issueRef,
+
+            remarks: notes,
+
+            asset_id: assetId,
+          };
+        });
+
+
+        console.log("FINAL ISSUE ROWS:", issueRows);
+        console.log("FINAL RETURN ROWS:", returnRows);
+
+
+        dispatch(setIssues(issueRows));
+        dispatch(setReturns(returnRows));
+
+      } catch (error) {
+        console.error(
+          "Failed to load transactions:",
+          error
+        );
+      }
+    };
+
+
+    loadTransactions();
+  }, [dispatch]);
+
+
+  // -------------------------------------------------------
+  // Issue Columns
+  // -------------------------------------------------------
+  const issueColumns = useMemo(
+    () => [
+      {
+        field: "code",
+        headerName: "Issue Ref",
+        flex: 1,
+        minWidth: 120,
+
+        // FIX: value can be an object from the API in some
+        // responses — never render params.value directly.
+        renderCell: (params) => (
+          <span>
+            {getText(params.value, `ISS-${params.row.id}`)}
+          </span>
+        ),
+      },
+
+      {
+        field: "date",
+        headerName: "Date",
+        flex: 1,
+        minWidth: 120,
+
+        renderCell: (params) => (
+          <span>
+            {params.value
+              ? formatDate(params.value)
+              : "-"}
+          </span>
+        ),
+      },
+
+      {
+        field: "issuedTo",
+        headerName: "Issued To",
+        flex: 1.5,
+        minWidth: 150,
+
+        renderCell: (params) => (
+          <span>
+            {getText(params.value, "Unknown")}
+          </span>
+        ),
+      },
+
+      {
+        field: "department",
+        headerName: "Department",
+        flex: 1,
+        minWidth: 130,
+
+        renderCell: (params) => (
+          <span>
+            {getText(params.value, "General")}
+          </span>
+        ),
+      },
+
+      {
+        field: "itemsCount",
+        headerName: "Total Items",
+        flex: 1,
+        minWidth: 110,
+
+        valueGetter: (value, row) => {
+          return row?.items?.length || 0;
+        },
+      },
+
+      {
+        field: "issuedBy",
+        headerName: "Issued By",
+        flex: 1,
+        minWidth: 130,
+
+        renderCell: (params) => (
+          <span>
+            {getText(params.value, "Unknown")}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+
+  // -------------------------------------------------------
+  // Return Columns
+  // -------------------------------------------------------
+  const returnColumns = useMemo(
+    () => [
+      {
+        field: "code",
+        headerName: "Return Ref",
+        flex: 1,
+        minWidth: 120,
+
+        // FIX: same object-vs-string guard as Issues.code
+        renderCell: (params) => (
+          <span>
+            {getText(params.value, `RTN-${params.row.id}`)}
+          </span>
+        ),
+      },
+
+      {
+        field: "issueRef",
+        headerName: "Issue Ref",
+        flex: 1,
+        minWidth: 120,
+
+        // FIX: same object-vs-string guard
+        renderCell: (params) => (
+          <span>
+            {getText(params.value, "-")}
+          </span>
+        ),
+      },
+
+      {
+        field: "date",
+        headerName: "Date",
+        flex: 1,
+        minWidth: 120,
+
+        renderCell: (params) => (
+          <span>
+            {params.value
+              ? formatDate(params.value)
+              : "-"}
+          </span>
+        ),
+      },
+
+      {
+        field: "returnedBy",
+        headerName: "Returned By",
+        flex: 1.5,
+        minWidth: 150,
+
+        renderCell: (params) => (
+          <span>
+            {getText(params.value, "Employee")}
+          </span>
+        ),
+      },
+
+      {
+        field: "department",
+        headerName: "Department",
+        flex: 1,
+        minWidth: 130,
+
+        renderCell: (params) => (
+          <span>
+            {getText(params.value, "General")}
+          </span>
+        ),
+      },
+
+      {
+        field: "receivedBy",
+        headerName: "Received By",
+        flex: 1,
+        minWidth: 130,
+
+        renderCell: (params) => (
+          <span>
+            {getText(params.value, "Unknown")}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+
+  // -------------------------------------------------------
+  // REAL Department Summary
+  // -------------------------------------------------------
+  const deptSummary = useMemo(() => {
+    const departments = {};
+
+
+    filteredIssues.forEach((issue) => {
+      const department = getText(
+        issue.department,
+        "General"
+      );
+
+
+      if (!departments[department]) {
+        departments[department] = {
+          name: department,
+          issues: 0,
+          returns: 0,
+        };
+      }
+
+
+      departments[department].issues += 1;
+    });
+
+
+    filteredReturns.forEach((ret) => {
+      const department = getText(
+        ret.department,
+        "General"
+      );
+
+
+      if (!departments[department]) {
+        departments[department] = {
+          name: department,
+          issues: 0,
+          returns: 0,
+        };
+      }
+
+
+      departments[department].returns += 1;
+    });
+
+
+    return Object.values(departments);
+  }, [filteredIssues, filteredReturns]);
+
+
+  // -------------------------------------------------------
+  // UI
+  // -------------------------------------------------------
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <Box sx={{ p: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>Issue & Return</Typography>
-        
+
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: "bold",
+            mb: 3,
+          }}
+        >
+          Issue & Return
+        </Typography>
+
+
+        {/* Tabs */}
         <Paper sx={{ mb: 3 }}>
-          <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs
+            value={tabValue}
+            onChange={(e, value) =>
+              setTabValue(value)
+            }
+            sx={{
+              borderBottom: 1,
+              borderColor: "divider",
+            }}
+          >
             <Tab label="Issues" />
             <Tab label="Returns" />
             <Tab label="Summary" />
           </Tabs>
         </Paper>
 
+
+        {/* =================================================
+            ISSUES TAB
+        ================================================= */}
         {tabValue === 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => setIssueDialogOpen(true)}>
-                Issue Items
-              </Button>
-            </Box>
-            <Paper sx={{ height: 600, width: '100%' }}>
-              <DataGrid rows={issues} columns={issueColumns} />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+
+            {canIssueReturn && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  mb: 2,
+                }}
+              >
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() =>
+                    setIssueDialogOpen(true)
+                  }
+                >
+                  Issue Items
+                </Button>
+              </Box>
+            )}
+
+
+            <Paper
+              sx={{
+                height: 600,
+                width: "100%",
+              }}
+            >
+              <DataGrid
+                rows={filteredIssues}
+                columns={issueColumns}
+                pageSizeOptions={[10, 25, 50]}
+                initialState={{
+                  pagination: {
+                    paginationModel: {
+                      pageSize: 10,
+                      page: 0,
+                    },
+                  },
+                }}
+                disableRowSelectionOnClick
+              />
             </Paper>
+
           </motion.div>
         )}
 
+
+        {/* =================================================
+            RETURNS TAB
+        ================================================= */}
         {tabValue === 1 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button variant="contained" color="secondary" startIcon={<ReturnIcon />} onClick={() => setReturnDialogOpen(true)}>
-                Record Return
-              </Button>
-            </Box>
-            <Paper sx={{ height: 600, width: '100%' }}>
-              <DataGrid rows={returns} columns={returnColumns} />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+
+            {canIssueReturn && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  mb: 2,
+                }}
+              >
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<ReturnIcon />}
+                  onClick={() =>
+                    setReturnDialogOpen(true)
+                  }
+                >
+                  Record Return
+                </Button>
+              </Box>
+            )}
+
+
+            <Paper
+              sx={{
+                height: 600,
+                width: "100%",
+              }}
+            >
+              <DataGrid
+                rows={filteredReturns}
+                columns={returnColumns}
+                pageSizeOptions={[10, 25, 50]}
+                initialState={{
+                  pagination: {
+                    paginationModel: {
+                      pageSize: 10,
+                      page: 0,
+                    },
+                  },
+                }}
+                disableRowSelectionOnClick
+              />
             </Paper>
+
           </motion.div>
         )}
 
+
+        {/* =================================================
+            SUMMARY TAB
+        ================================================= */}
         {tabValue === 2 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+
+            <Grid
+              container
+              spacing={3}
+              sx={{ mb: 4 }}
+            >
+
+              {/* TOTAL ISSUES */}
               <Grid item xs={12} sm={6}>
-                <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+                <Card
+                  sx={{
+                    bgcolor: "primary.light",
+                    color: "primary.contrastText",
+                  }}
+                >
                   <CardContent>
-                    <Typography variant="h6">Total Issues (YTD)</Typography>
-                    <Typography variant="h3" sx={{ fontWeight: 'bold' }}>{issues.length}</Typography>
+
+                    <Typography variant="h6">
+                      Total Issues
+                    </Typography>
+
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {filteredIssues.length}
+                    </Typography>
+
                   </CardContent>
                 </Card>
               </Grid>
+
+
+              {/* TOTAL RETURNS */}
               <Grid item xs={12} sm={6}>
-                <Card sx={{ bgcolor: 'secondary.light', color: 'secondary.contrastText' }}>
+                <Card
+                  sx={{
+                    bgcolor: "secondary.light",
+                    color: "secondary.contrastText",
+                  }}
+                >
                   <CardContent>
-                    <Typography variant="h6">Total Returns (YTD)</Typography>
-                    <Typography variant="h3" sx={{ fontWeight: 'bold' }}>{returns.length}</Typography>
+
+                    <Typography variant="h6">
+                      Total Returns
+                    </Typography>
+
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {filteredReturns.length}
+                    </Typography>
+
                   </CardContent>
                 </Card>
               </Grid>
+
             </Grid>
 
-            <Paper sx={{ p: 3, height: 400 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Department-wise Issues & Returns</Typography>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={deptSummary}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="issues" fill="#3f51b5" name="Issues" />
-                  <Bar dataKey="returns" fill="#f50057" name="Returns" />
-                </BarChart>
-              </ResponsiveContainer>
+
+            {/* CHART */}
+            <Paper
+              sx={{
+                p: 3,
+                height: 400,
+              }}
+            >
+
+              <Typography
+                variant="h6"
+                sx={{ mb: 2 }}
+              >
+                Department-wise Issues & Returns
+              </Typography>
+
+
+              {deptSummary.length === 0 ? (
+
+                <Box
+                  sx={{
+                    height: "90%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Typography color="text.secondary">
+                    No issue or return data available.
+                  </Typography>
+                </Box>
+
+              ) : (
+
+                <ResponsiveContainer
+                  width="100%"
+                  height="90%"
+                >
+                  <BarChart data={deptSummary}>
+
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                    />
+
+                    <XAxis
+                      dataKey="name"
+                    />
+
+                    <YAxis />
+
+                    <Tooltip />
+
+                    <Bar
+                      dataKey="issues"
+                      fill="#3f51b5"
+                      name="Issues"
+                    />
+
+                    <Bar
+                      dataKey="returns"
+                      fill="#f50057"
+                      name="Returns"
+                    />
+
+                  </BarChart>
+                </ResponsiveContainer>
+
+              )}
+
             </Paper>
+
           </motion.div>
         )}
 
-        <IssueFormDialog open={issueDialogOpen} onClose={() => setIssueDialogOpen(false)} />
-        <ReturnFormDialog open={returnDialogOpen} onClose={() => setReturnDialogOpen(false)} />
+
+        {/* =================================================
+            DIALOGS
+        ================================================= */}
+
+        <IssueFormDialog
+          open={issueDialogOpen}
+          onClose={() =>
+            setIssueDialogOpen(false)
+          }
+        />
+
+
+        <ReturnFormDialog
+          open={returnDialogOpen}
+          onClose={() =>
+            setReturnDialogOpen(false)
+          }
+        />
+
       </Box>
     </motion.div>
   );
 };
+
 
 export default IssueReturnPage;
