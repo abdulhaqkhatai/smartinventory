@@ -78,7 +78,7 @@ const AssetListPage = () => {
                      try {
                         const parsed = JSON.parse(notes);
                         assignedTo = parsed.issuedTo;
-                     } catch(e) {}
+                     } catch {}
                   }
 
                   department = issue.department || issue.department_name || "";
@@ -86,7 +86,7 @@ const AssetListPage = () => {
                      try {
                         const parsed = JSON.parse(notes);
                         department = parsed.department;
-                     } catch(e) {}
+                     } catch {}
                   }
                }
 

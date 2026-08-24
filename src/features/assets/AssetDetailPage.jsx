@@ -22,7 +22,7 @@ import { motion } from 'framer-motion';
 import { useSnackbar } from 'notistack';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 import { mockUsers } from '../../services/mockData';
-import { assignAsset, unassignAsset, updateAsset, addAsset } from './assetsSlice';
+import { assignAsset, unassignAsset, addAsset } from './assetsSlice';
 import api from '../../services/api';
 
 const AssetDetailPage = () => {
@@ -75,7 +75,7 @@ const AssetDetailPage = () => {
                    try {
                       const parsed = JSON.parse(notes);
                       assignedTo = parsed.issuedTo;
-                   } catch(e) {}
+                   } catch {}
                 }
 
                 fetchedDepartment = issue.department || issue.department_name || "";
@@ -83,7 +83,7 @@ const AssetDetailPage = () => {
                    try {
                       const parsed = JSON.parse(notes);
                       fetchedDepartment = parsed.department;
-                   } catch(e) {}
+                   } catch {}
                 }
               }
             }
