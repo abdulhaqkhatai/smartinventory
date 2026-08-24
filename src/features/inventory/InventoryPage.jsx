@@ -30,6 +30,7 @@ import {
 import { mockItems } from '../../services/mockData';
 import { formatCurrency, formatDate, generateId } from '../../utils/helpers';
 import dayjs from 'dayjs';
+import api from '../../services/api';
 
 const InventoryPage = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -169,7 +170,10 @@ const InventoryPage = () => {
   const mockLowStockItems = mockItems.filter(item => item.currentStock <= item.reorderLevel);
   const displayLowStockItems = lowStockItems?.length ? lowStockItems : mockLowStockItems;
 
-  const handleAdjustmentSubmit = (e) => {
+  const { user } = useSelector(state => state.auth);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleAdjustmentSubmit = async (e) => {
     e.preventDefault();
 
     if (
@@ -187,37 +191,52 @@ const InventoryPage = () => {
       return;
     }
 
-    const newMovement = {
-      id: generateId(),
-      date: dayjs().format('YYYY-MM-DD'),
-      type: 'Adjustment',
-      itemName: adjForm.item.name,
+    const payload = {
+      itemId: adjForm.item.id,
       quantity: Number(adjForm.qty),
-      reference: `ADJ-${dayjs()
-        .format('YYYY')}-${Math.floor(
-        Math.random() * 1000
-      )
-        .toString()
-        .padStart(3, '0')}`,
+      reason: adjForm.reason || 'Manual Adjustment',
+      reference: `ADJ-${dayjs().format('YYYY')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
       warehouse: 'Main Store',
-      performedBy: 'Current User'
+      performedBy: user?.name || user?.username || 'Current User',
+      remarks: 'Stock Adjustment'
     };
 
-    dispatch(addStockMovement(newMovement));
+    try {
+      setIsSubmitting(true);
+      const response = await api.post('/inventory/adjustment', payload);
+      const createdAdjustment = response?.data?.data || response?.data;
 
-    enqueueSnackbar(
-      'Stock Adjusted Successfully',
-      {
-        variant: 'success'
-      }
-    );
+      const newMovement = {
+        id: createdAdjustment?.id || generateId(),
+        date: dayjs().format('YYYY-MM-DD'),
+        type: 'Adjustment',
+        itemName: adjForm.item.name,
+        quantity: Number(adjForm.qty),
+        reference: createdAdjustment?.reference || payload.reference,
+        warehouse: createdAdjustment?.warehouse || payload.warehouse,
+        performedBy: createdAdjustment?.performedBy || payload.performedBy
+      };
 
-    setAdjForm({
-      item: null,
-      type: 'Adjustment',
-      qty: '',
-      reason: ''
-    });
+      dispatch(addStockMovement(newMovement));
+
+      enqueueSnackbar(
+        'Stock Adjusted Successfully',
+        {
+          variant: 'success'
+        }
+      );
+
+      setAdjForm({
+        item: null,
+        type: 'Adjustment',
+        qty: '',
+        reason: ''
+      });
+    } catch (error) {
+      enqueueSnackbar(error?.response?.data?.message || error.message || 'Failed to adjust stock', { variant: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

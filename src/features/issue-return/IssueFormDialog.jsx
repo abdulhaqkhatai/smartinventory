@@ -275,10 +275,7 @@ const IssueFormDialog = ({ open, onClose }) => {
         const payload = {
           asset_id: Number(row.item.id),
 
-          // IMPORTANT:
-          // This should later come from logged-in user.
-          // Keeping 1 for your current project.
-          user_id: 1,
+          user_id: user?.id || 1,
 
           issue_date: `${formData.date} 00:00:00`,
 

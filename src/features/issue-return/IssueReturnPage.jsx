@@ -112,18 +112,28 @@ const IssueReturnPage = () => {
   const isAdmin = userRole === 'admin';
   const isStoreManager = userRole === 'store_manager' || userRole === 'store manager';
   const isEmployee = userRole === 'employee';
-  const canIssueReturn = isAdmin || isStoreManager || isEmployee;
+  
+  // Only Admin and Store Manager get the main Issue/Return buttons
+  const canIssueReturn = isAdmin || isStoreManager;
 
   const filteredIssues = useMemo(() => {
     if (isEmployee) {
-      return issues.filter(i => i.issuedTo === user?.name);
+      // Lenient filtering for employee
+      return issues.filter(i => {
+        const issued = (i.issuedTo || i.issued_to || i.employee || i.employee_name || i.user || '').toLowerCase();
+        return issued.includes((user?.name || '').toLowerCase()) || issued.includes((user?.username || '').toLowerCase());
+      });
     }
     return issues;
   }, [issues, isEmployee, user]);
 
   const filteredReturns = useMemo(() => {
     if (isEmployee) {
-      return returns.filter(r => r.returnedBy === user?.name);
+      // Lenient filtering for employee
+      return returns.filter(r => {
+        const returned = (r.returnedBy || r.returned_by || r.employee || '').toLowerCase();
+        return returned.includes((user?.name || '').toLowerCase()) || returned.includes((user?.username || '').toLowerCase());
+      });
     }
     return returns;
   }, [returns, isEmployee, user]);

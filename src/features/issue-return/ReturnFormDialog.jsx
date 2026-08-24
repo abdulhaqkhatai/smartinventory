@@ -184,7 +184,7 @@ const ReturnFormDialog = ({ open, onClose }) => {
       );
       const returnPayload = {
         asset_id: selectedIssue?.asset_id || selectedIssue?.id || 1,
-        user_id: 1,
+        user_id: user?.id || 1,
         return_date: `${formData.date} 00:00:00`,
         return_condition: returningItems.some(
           (item) =>

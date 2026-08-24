@@ -16,8 +16,9 @@ import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import { useSnackbar } from 'notistack';
 import { addPurchaseOrder } from './purchaseOrdersSlice';
-import { mockItems, mockVendors } from '../../services/mockData';
-import { generateId, formatCurrency } from '../../utils/helpers';
+import { mockVendors, mockIndents, mockItems } from '../../services/mockData';
+import { generateId, formatDate } from '../../utils/helpers';
+import api from '../../services/api';
 
 const schema = yup.object().shape({
   vendor: yup.object().nullable().required('Vendor is required'),
@@ -78,41 +79,74 @@ const POFormPage = () => {
     }, { subTotal: 0, gstAmount: 0, grandTotal: 0 });
   }, [watchItems]);
 
-  const onSubmit = (data) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const onSubmit = async (data) => {
     const payload = {
-      id: generateId('PO'),
-      poCode: generateId('PO'),
-      date: new Date().toISOString(),
-      vendor: data.vendor,
+      vendorId: data.vendor?.id || 1, // Fallback if no vendor id
+      vendorName: data.vendor?.name || '',
       indentRef: data.indentRef?.indentCode || '',
-      deliveryDate: data.deliveryDate,
-      terms: data.terms,
-      paymentTerms: data.paymentTerms,
-      status: 'Pending',
       items: data.items.map(i => {
         const qty = parseFloat(i.quantity);
         const rate = parseFloat(i.rate);
         const gst = parseFloat(i.gst);
-        const amount = qty * rate;
         return {
-          id: i.item.id,
-          name: i.item.name,
-          code: i.item.code,
-          unit: i.item.unit,
+          itemId: i.item.id || 1, // Fallback if no id
+          itemName: i.item.name,
           quantity: qty,
           rate: rate,
-          gst: gst,
-          amount: amount
+          gstRate: gst
         };
       }),
-      subTotal: totals.subTotal,
-      gstAmount: totals.gstAmount,
-      totalAmount: totals.grandTotal
+      deliveryDate: data.deliveryDate,
+      terms: data.terms,
+      paymentTerms: data.paymentTerms
     };
 
-    dispatch(addPurchaseOrder(payload));
-    enqueueSnackbar('Purchase Order created successfully', { variant: 'success' });
-    navigate('/purchase-orders');
+    try {
+      setIsSubmitting(true);
+      const response = await api.post('/purchase-orders', payload);
+      const createdPO = response?.data?.data || response?.data;
+
+      const newPO = {
+        id: createdPO.id || generateId('PO'),
+        poCode: createdPO.code || generateId('PO'),
+        date: createdPO.date || new Date().toISOString(),
+        vendor: data.vendor,
+        indentRef: createdPO.indent_ref || payload.indentRef,
+        deliveryDate: createdPO.delivery_date || payload.deliveryDate,
+        terms: createdPO.terms || payload.terms,
+        paymentTerms: createdPO.payment_terms || payload.paymentTerms,
+        status: createdPO.status || 'pending',
+        items: data.items.map(i => {
+          const qty = parseFloat(i.quantity);
+          const rate = parseFloat(i.rate);
+          const gst = parseFloat(i.gst);
+          const amount = qty * rate;
+          return {
+            id: i.item.id,
+            name: i.item.name,
+            code: i.item.code,
+            unit: i.item.unit,
+            quantity: qty,
+            rate: rate,
+            gst: gst,
+            amount: amount
+          };
+        }),
+        subTotal: totals.subTotal,
+        gstAmount: totals.gstAmount,
+        totalAmount: totals.grandTotal
+      };
+
+      dispatch(addPurchaseOrder(newPO));
+      enqueueSnackbar('Purchase Order created successfully', { variant: 'success' });
+      navigate('/purchase-orders');
+    } catch (error) {
+      enqueueSnackbar(error?.response?.data?.message || error.message || 'Failed to create PO', { variant: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

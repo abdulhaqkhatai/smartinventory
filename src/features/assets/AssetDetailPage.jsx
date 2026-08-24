@@ -139,7 +139,7 @@ const AssetDetailPage = () => {
       
       await api.post('/issues', {
         asset_id: asset.id,
-        user_id: 1,
+        user_id: user?.id || 1,
         issue_date: new Date().toISOString().split('T')[0] + ' 00:00:00',
         issue_condition: 'Good',
         notes: JSON.stringify({
@@ -166,7 +166,7 @@ const AssetDetailPage = () => {
 
         await api.post('/returns', {
           asset_id: asset.id,
-          user_id: 1,
+          user_id: user?.id || 1,
           return_date: new Date().toISOString().split('T')[0] + ' 00:00:00',
           return_condition: 'Good',
           notes: JSON.stringify({

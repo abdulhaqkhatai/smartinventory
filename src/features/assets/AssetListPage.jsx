@@ -241,14 +241,22 @@ const AssetListPage = () => {
 
   const filteredAssets = assets.filter((asset) => {
     // Role based filtering
-    if (isEmployee && asset.assignedTo !== user?.name) {
-      return false;
+    if (isEmployee) {
+      const assigned = (asset.assignedTo || asset.assigned_to || '').toLowerCase();
+      const uName = (user?.name || '').toLowerCase();
+      const uUser = (user?.username || '').toLowerCase();
+      if (!assigned.includes(uName) && !assigned.includes(uUser)) {
+        return false;
+      }
     }
-    if (isStoreManager && asset.location !== user?.location && asset.location !== (user?.location || 'General')) {
-      // Allow if asset location matches user location, or both are blank/General
+    
+    if (isStoreManager) {
       const userLoc = (user?.location || 'General').toLowerCase();
       const assetLoc = (asset.location || 'General').toLowerCase();
-      if (userLoc !== assetLoc) return false;
+      // Only filter out if both are defined and they don't match
+      if (userLoc !== 'general' && assetLoc !== 'general' && userLoc !== assetLoc) {
+        return false;
+      }
     }
 
     const matchesSearch =

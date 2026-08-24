@@ -80,17 +80,15 @@ const ReportsPage = () => {
   const navigate = useNavigate();
   const { user } = useSelector(state => state.auth);
   
-  const userRole = (user?.role || '').toLowerCase();
+  const userRole = (user?.role || '').toLowerCase().trim();
   
   const filteredReports = reportsList.filter(report => {
     if (userRole === 'admin') return true;
-    if (userRole === 'store_manager' || userRole === 'store manager') return true; // Store manager sees all report cards, data filtered by location in backend
-    if (userRole === 'purchase_manager' || userRole === 'purchase manager') return true; // Purchase manager sees all, read-only
-    if (userRole === 'employee') {
-      // Employees only need Asset and Issue/Return reports
-      return ['asset', 'issue-return'].includes(report.type);
-    }
-    return false;
+    if (userRole === 'store_manager' || userRole === 'store manager') return true; 
+    if (userRole === 'purchase_manager' || userRole === 'purchase manager') return true; 
+    
+    // For employee or any unrecognized role, show limited reports just in case
+    return ['asset', 'issue-return'].includes(report.type);
   });
 
   return (
