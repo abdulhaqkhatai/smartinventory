@@ -252,7 +252,7 @@ const AssetListPage = () => {
   });
 
   return (
-    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <Box
         sx={{
           mb: 3,
@@ -264,7 +264,7 @@ const AssetListPage = () => {
         }}
       >
         <Box>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography variant="h4" fontWeight={800} sx={{ background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Asset Management
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -280,6 +280,18 @@ const AssetListPage = () => {
               setEditingAsset(null);
               setFormOpen(true);
             }}
+            sx={{
+              borderRadius: 3,
+              textTransform: 'none',
+              fontWeight: 600,
+              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+              boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+              transition: 'transform 0.2s',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 6px 10px 2px rgba(33, 203, 243, .3)',
+              }
+            }}
           >
             Register Asset
           </Button>
@@ -287,7 +299,7 @@ const AssetListPage = () => {
       </Box>
 
       {/* Filter Row */}
-      <Card sx={{ mb: 3, p: 2 }}>
+      <Card sx={{ mb: 3, p: 2, borderRadius: 3, boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)' }}>
         <Box
           sx={{
             display: "flex",
@@ -305,6 +317,7 @@ const AssetListPage = () => {
                 clickable
                 color={typeFilter === t ? "primary" : "default"}
                 onClick={() => setTypeFilter(t)}
+                sx={{ borderRadius: 2, fontWeight: 500 }}
               />
             ))}
           </Box>
@@ -319,19 +332,32 @@ const AssetListPage = () => {
                   <Search fontSize="small" />
                 </InputAdornment>
               ),
+              sx: { borderRadius: 3, backgroundColor: 'background.default' }
             }}
           />
         </Box>
       </Card>
 
       {/* DataGrid */}
-      <Card sx={{ height: 540 }}>
+      <Card sx={{ height: 540, borderRadius: 3, boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)' }}>
         <DataGrid
           rows={filteredAssets}
           columns={columns}
           pageSizeOptions={[10, 25]}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
           disableRowSelectionOnClick
+          sx={{
+            border: 'none',
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: 'background.default',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+            },
+            '& .MuiDataGrid-cell': {
+              borderBottom: '1px dashed',
+              borderColor: 'divider',
+            }
+          }}
         />
       </Card>
 

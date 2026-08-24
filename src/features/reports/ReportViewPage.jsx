@@ -287,11 +287,11 @@ const ReportViewPage = () => {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <Button
         startIcon={<ArrowBack />}
         onClick={() => navigate("/reports")}
-        sx={{ mb: 2 }}
+        sx={{ mb: 2, borderRadius: 2, fontWeight: 600 }}
       >
         Back to Reports
       </Button>
@@ -307,7 +307,7 @@ const ReportViewPage = () => {
         }}
       >
         <Box>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography variant="h4" fontWeight={800} sx={{ background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             {reportTitle}
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -320,6 +320,7 @@ const ReportViewPage = () => {
             color="primary"
             startIcon={<TableChart />}
             onClick={handleExportExcel}
+            sx={{ borderRadius: 2, fontWeight: 600, textTransform: 'none', boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)' }}
           >
             Export to Excel
           </Button>
@@ -328,6 +329,7 @@ const ReportViewPage = () => {
             color="secondary"
             startIcon={<PictureAsPdf />}
             onClick={handleExportPDF}
+            sx={{ borderRadius: 2, fontWeight: 600, textTransform: 'none', boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)' }}
           >
             Export to PDF
           </Button>
@@ -335,7 +337,7 @@ const ReportViewPage = () => {
       </Box>
 
       {/* Date Filter Card */}
-      <Card sx={{ mb: 3, p: 2 }}>
+      <Card sx={{ mb: 3, p: 2, borderRadius: 3, boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)' }}>
         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
           <TextField
             type="date"
@@ -344,6 +346,7 @@ const ReportViewPage = () => {
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           />
           <TextField
             type="date"
@@ -352,23 +355,37 @@ const ReportViewPage = () => {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           />
           <Chip
             label={`${rows.length} Records Found`}
             color="primary"
             variant="outlined"
+            sx={{ borderRadius: 2, fontWeight: 600 }}
           />
         </Stack>
       </Card>
 
       {/* Report DataGrid */}
-      <Card sx={{ height: 540 }}>
+      <Card sx={{ height: 540, borderRadius: 3, boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)', overflow: 'hidden' }}>
         <DataGrid
           rows={rows}
           columns={columns}
           pageSizeOptions={[10, 25, 50]}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
           disableRowSelectionOnClick
+          sx={{
+            border: 'none',
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: 'background.default',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+            },
+            '& .MuiDataGrid-cell': {
+              borderBottom: '1px dashed',
+              borderColor: 'divider',
+            }
+          }}
         />
       </Card>
     </motion.div>

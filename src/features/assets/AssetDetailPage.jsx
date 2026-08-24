@@ -195,50 +195,50 @@ const AssetDetailPage = () => {
       <Grid container spacing={3}>
         {/* Main Details */}
         <Grid size={{ xs: 12, md: 7 }}>
-          <Card>
+          <Card sx={{ borderRadius: 3, boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)' }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h5" fontWeight={700}>
+                <Typography variant="h5" fontWeight={800} sx={{ background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                   {asset.name}
                 </Typography>
-                <Chip label={asset.status} color={asset.status === 'in-use' ? 'info' : 'success'} />
+                <Chip label={asset.status} color={asset.status === 'in-use' ? 'info' : 'success'} sx={{ fontWeight: 600, borderRadius: 2 }} />
               </Box>
 
               <Divider sx={{ mb: 3 }} />
 
-              <Grid container spacing={2}>
+              <Grid container spacing={3}>
                 <Grid size={{ xs: 6 }}>
-                  <Typography variant="caption" color="text.secondary">Asset Code</Typography>
+                  <Typography variant="caption" color="text.secondary" textTransform="uppercase" letterSpacing={1}>Asset Code</Typography>
                   <Typography variant="body1" fontWeight={600}>{asset.code}</Typography>
                 </Grid>
                 <Grid size={{ xs: 6 }}>
-                  <Typography variant="caption" color="text.secondary">Category / Type</Typography>
+                  <Typography variant="caption" color="text.secondary" textTransform="uppercase" letterSpacing={1}>Category / Type</Typography>
                   <Typography variant="body1" fontWeight={600}>{asset.type}</Typography>
                 </Grid>
                 <Grid size={{ xs: 6 }}>
-                  <Typography variant="caption" color="text.secondary">Serial Number</Typography>
+                  <Typography variant="caption" color="text.secondary" textTransform="uppercase" letterSpacing={1}>Serial Number</Typography>
                   <Typography variant="body1" fontWeight={600}>{asset.serialNo}</Typography>
                 </Grid>
                 <Grid size={{ xs: 6 }}>
-                  <Typography variant="caption" color="text.secondary">Purchase Cost</Typography>
-                  <Typography variant="body1" fontWeight={600} color="primary.main">{formatCurrency(asset.cost)}</Typography>
+                  <Typography variant="caption" color="text.secondary" textTransform="uppercase" letterSpacing={1}>Purchase Cost</Typography>
+                  <Typography variant="body1" fontWeight={700} color="primary.main">{formatCurrency(asset.cost)}</Typography>
                 </Grid>
                 <Grid size={{ xs: 6 }}>
-                  <Typography variant="caption" color="text.secondary">Purchase Date</Typography>
+                  <Typography variant="caption" color="text.secondary" textTransform="uppercase" letterSpacing={1}>Purchase Date</Typography>
                   <Typography variant="body1" fontWeight={600}>{formatDate(asset.purchaseDate)}</Typography>
                 </Grid>
                 <Grid size={{ xs: 6 }}>
-                  <Typography variant="caption" color="text.secondary">Warranty Expiry</Typography>
+                  <Typography variant="caption" color="text.secondary" textTransform="uppercase" letterSpacing={1}>Warranty Expiry</Typography>
                   <Typography variant="body1" fontWeight={600} color={isWarrantyExpired ? 'error.main' : 'success.main'}>
                     {formatDate(asset.warrantyExpiry)} {isWarrantyExpired ? '(Expired)' : '(Valid)'}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 6 }}>
-                  <Typography variant="caption" color="text.secondary">Supplier Vendor</Typography>
+                  <Typography variant="caption" color="text.secondary" textTransform="uppercase" letterSpacing={1}>Supplier Vendor</Typography>
                   <Typography variant="body1" fontWeight={600}>{asset.vendor}</Typography>
                 </Grid>
                 <Grid size={{ xs: 6 }}>
-                  <Typography variant="caption" color="text.secondary">Condition</Typography>
+                  <Typography variant="caption" color="text.secondary" textTransform="uppercase" letterSpacing={1}>Condition</Typography>
                   <Typography variant="body1" fontWeight={600}>{asset.condition}</Typography>
                 </Grid>
               </Grid>
@@ -248,7 +248,7 @@ const AssetDetailPage = () => {
 
         {/* Assignment Info */}
         <Grid size={{ xs: 12, md: 5 }}>
-          <Card>
+          <Card sx={{ borderRadius: 3, boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)', background: 'linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%)' }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" fontWeight={700} gutterBottom>
                 Assignment & Deployment

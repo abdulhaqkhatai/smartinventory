@@ -610,8 +610,11 @@ const IssueReturnPage = () => {
         <Typography
           variant="h4"
           sx={{
-            fontWeight: "bold",
+            fontWeight: 800,
             mb: 3,
+            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
           }}
         >
           Issue & Return
@@ -619,7 +622,7 @@ const IssueReturnPage = () => {
 
 
         {/* Tabs */}
-        <Paper sx={{ mb: 3 }}>
+        <Paper sx={{ mb: 3, borderRadius: 3, boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)' }}>
           <Tabs
             value={tabValue}
             onChange={(e, value) =>
@@ -628,7 +631,10 @@ const IssueReturnPage = () => {
             sx={{
               borderBottom: 1,
               borderColor: "divider",
+              '& .MuiTab-root': { fontWeight: 600, textTransform: 'none', minWidth: 120 },
             }}
+            indicatorColor="primary"
+            textColor="primary"
           >
             <Tab label="Issues" />
             <Tab label="Returns" />
@@ -660,6 +666,13 @@ const IssueReturnPage = () => {
                   onClick={() =>
                     setIssueDialogOpen(true)
                   }
+                  sx={{
+                    borderRadius: 2,
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                    boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                  }}
                 >
                   Issue Items
                 </Button>
@@ -671,6 +684,9 @@ const IssueReturnPage = () => {
               sx={{
                 height: 600,
                 width: "100%",
+                borderRadius: 3,
+                boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
+                overflow: 'hidden'
               }}
             >
               <DataGrid
@@ -686,6 +702,18 @@ const IssueReturnPage = () => {
                   },
                 }}
                 disableRowSelectionOnClick
+                sx={{
+                  border: 'none',
+                  '& .MuiDataGrid-columnHeaders': {
+                    backgroundColor: 'background.default',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                  },
+                  '& .MuiDataGrid-cell': {
+                    borderBottom: '1px dashed',
+                    borderColor: 'divider',
+                  }
+                }}
               />
             </Paper>
 
@@ -717,6 +745,13 @@ const IssueReturnPage = () => {
                   onClick={() =>
                     setReturnDialogOpen(true)
                   }
+                  sx={{
+                    borderRadius: 2,
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    background: 'linear-gradient(45deg, #f50057 30%, #ff4081 90%)',
+                    boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)',
+                  }}
                 >
                   Record Return
                 </Button>
@@ -728,6 +763,9 @@ const IssueReturnPage = () => {
               sx={{
                 height: 600,
                 width: "100%",
+                borderRadius: 3,
+                boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
+                overflow: 'hidden'
               }}
             >
               <DataGrid
@@ -743,6 +781,18 @@ const IssueReturnPage = () => {
                   },
                 }}
                 disableRowSelectionOnClick
+                sx={{
+                  border: 'none',
+                  '& .MuiDataGrid-columnHeaders': {
+                    backgroundColor: 'background.default',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                  },
+                  '& .MuiDataGrid-cell': {
+                    borderBottom: '1px dashed',
+                    borderColor: 'divider',
+                  }
+                }}
               />
             </Paper>
 

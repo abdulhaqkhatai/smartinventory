@@ -149,11 +149,13 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>{asset ? "Edit Asset" : "Register New Asset"}</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.1)' } }}>
+      <DialogTitle sx={{ fontWeight: 800, background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)', color: 'white' }}>
+        {asset ? "Edit Asset" : "Register New Asset"}
+      </DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent dividers>
-          <Grid container spacing={2}>
+        <DialogContent dividers sx={{ p: 4 }}>
+          <Grid container spacing={3}>
             <Grid size={{ xs: 12, sm: 6 }}>
               <Controller
                 name="name"
@@ -165,6 +167,7 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                     label="Asset Name"
                     error={!!errors.name}
                     helperText={errors.name?.message}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
                 )}
               />
@@ -179,6 +182,7 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                     select
                     fullWidth
                     label="Asset Category / Type"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   >
                     <MenuItem value="Laptop">Laptop</MenuItem>
                     <MenuItem value="Desktop">Desktop</MenuItem>
@@ -201,6 +205,7 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                     label="Serial Number / Tag"
                     error={!!errors.serialNo}
                     helperText={errors.serialNo?.message}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
                 )}
               />
@@ -217,6 +222,7 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                     label="Purchase Cost (INR)"
                     error={!!errors.cost}
                     helperText={errors.cost?.message}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
                 )}
               />
@@ -232,6 +238,7 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                     type="date"
                     label="Purchase Date"
                     InputLabelProps={{ shrink: true }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
                 )}
               />
@@ -249,6 +256,7 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                     InputLabelProps={{ shrink: true }}
                     error={!!errors.warrantyExpiry}
                     helperText={errors.warrantyExpiry?.message}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
                 )}
               />
@@ -263,6 +271,7 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                     fullWidth
                     label="Supplier / Vendor"
                     placeholder="Vendor name"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
                 )}
               />
@@ -277,6 +286,7 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                     select
                     fullWidth
                     label="Initial Condition"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   >
                     <MenuItem value="Good">Good</MenuItem>
                     <MenuItem value="Fair">Fair</MenuItem>
@@ -295,15 +305,16 @@ const AssetFormDialog = ({ open, onClose, asset = null }) => {
                     {...field}
                     fullWidth
                     label="Storage / Deployment Location"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
                 )}
               />
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="contained">
+        <DialogActions sx={{ p: 3, backgroundColor: 'background.default' }}>
+          <Button onClick={onClose} sx={{ fontWeight: 600, borderRadius: 2 }}>Cancel</Button>
+          <Button type="submit" variant="contained" sx={{ borderRadius: 2, fontWeight: 600, background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)', boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)' }}>
             {asset ? "Save Changes" : "Register Asset"}
           </Button>
         </DialogActions>
