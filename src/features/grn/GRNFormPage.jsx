@@ -73,10 +73,10 @@ const GRNFormPage = () => {
     const isPartial = items.some(item => item.acceptedQty < item.orderedQty);
 
     const payload = {
-      po_ref: po.code,
-      vendor_name: po.vendorName,
+      poRef: po.code,
+      vendorName: po.vendorName,
       date: formData.date,
-      received_by: formData.receivedBy,
+      receivedBy: formData.receivedBy,
       status: isPartial ? 'partial' : 'completed',
       items: items.map(i => ({
         itemId: i.itemId,
@@ -98,10 +98,10 @@ const GRNFormPage = () => {
       const newGRN = {
         id: createdGRN.id || generateId(),
         code: createdGRN.code || `GRN-${dayjs().format('YYYY')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-        poRef: createdGRN.po_ref || payload.po_ref,
-        vendorName: createdGRN.vendor_name || payload.vendor_name,
+        poRef: createdGRN.po_ref || payload.poRef,
+        vendorName: createdGRN.vendor_name || payload.vendorName,
         date: createdGRN.date || payload.date,
-        receivedBy: createdGRN.received_by || payload.received_by,
+        receivedBy: createdGRN.received_by || payload.receivedBy,
         status: createdGRN.status || payload.status,
         items: typeof createdGRN.items === 'string' ? JSON.parse(createdGRN.items) : (createdGRN.items || payload.items),
         remarks: createdGRN.remarks || payload.remarks
