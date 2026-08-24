@@ -108,9 +108,10 @@ const IssueReturnPage = () => {
 
   const { user } = useSelector((state) => state.auth);
 
-  const isAdmin = user?.role === 'Admin';
-  const isStoreManager = user?.role === 'Store Manager';
-  const isEmployee = user?.role === 'Employee';
+  const userRole = (user?.role || '').toLowerCase();
+  const isAdmin = userRole === 'admin';
+  const isStoreManager = userRole === 'store_manager' || userRole === 'store manager';
+  const isEmployee = userRole === 'employee';
   const canIssueReturn = isAdmin || isStoreManager;
 
   const filteredIssues = useMemo(() => {
