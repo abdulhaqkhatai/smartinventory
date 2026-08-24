@@ -17,7 +17,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import { useSnackbar } from 'notistack';
 import { addPurchaseOrder } from './purchaseOrdersSlice';
 import { mockVendors, mockIndents, mockItems } from '../../services/mockData';
-import { generateId, formatDate } from '../../utils/helpers';
+import { generateId, formatDate, formatCurrency } from '../../utils/helpers';
 import api from '../../services/api';
 
 const schema = yup.object().shape({
