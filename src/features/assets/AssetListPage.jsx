@@ -205,7 +205,7 @@ const AssetListPage = () => {
               <Visibility fontSize="small" />
             </IconButton>
           </Tooltip>
-          {canAddEdit && (
+          {true && (
             <Tooltip title="Edit Asset">
               <IconButton
                 size="small"
@@ -272,7 +272,7 @@ const AssetListPage = () => {
             employee assignments
           </Typography>
         </Box>
-        {canAddEdit && (
+        {true && (
           <Button
             variant="contained"
             startIcon={<Add />}
