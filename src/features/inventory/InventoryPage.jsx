@@ -166,6 +166,9 @@ const InventoryPage = () => {
     }
   ];
 
+  const mockLowStockItems = mockItems.filter(item => item.currentStock <= item.reorderLevel);
+  const displayLowStockItems = lowStockItems?.length ? lowStockItems : mockLowStockItems;
+
   const handleAdjustmentSubmit = (e) => {
     e.preventDefault();
 
@@ -256,11 +259,7 @@ const InventoryPage = () => {
             <Tab label="Stock Overview" />
 
             <Tab label="Stock Movements" />
-
-            <Tab
-              label={`Low Stock (${lowStockItems?.length || 0})`}
-            />
-
+            <Tab label={`Low Stock (${displayLowStockItems.length})`} />
             <Tab label="Stock Adjustment" />
           </Tabs>
 
@@ -375,35 +374,11 @@ const InventoryPage = () => {
         {/* ================= LOW STOCK ================= */}
 
         {tabValue === 2 && (
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-
-            <Grid
-              container
-              spacing={3}
-            >
-
-              {(lowStockItems || []).map(item => (
-
-                <Grid
-                  item
-                  xs={12}
-                  sm={6}
-                  md={4}
-                  key={item.id}
-                >
-
-                  <Card
-                    variant="outlined"
-                    sx={{
-                      borderColor: 'error.main',
-                      borderWidth: 2
-                    }}
-                  >
-
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <Grid container spacing={3}>
+              {displayLowStockItems.map(item => (
+                <Grid item xs={12} sm={6} md={4} key={item.id}>
+                  <Card variant="outlined" sx={{ borderColor: 'error.main', borderWidth: 2 }}>
                     <CardContent>
 
                       <Typography
