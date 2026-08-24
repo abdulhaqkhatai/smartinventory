@@ -82,6 +82,9 @@ const POListPage = () => {
       field: 'poCode',
       headerName: 'PO Code',
       flex: 1,
+      valueGetter: (value, row) => {
+        return row?.poCode || row?.code || '';
+      },
     },
 
     {
@@ -91,7 +94,7 @@ const POListPage = () => {
 
       // MUI X DataGrid current valueGetter syntax
       valueGetter: (value, row) => {
-        return row?.vendor?.name || '';
+        return row?.vendor?.name || row?.vendorName || row?.vendor_name || '';
       },
     },
 
@@ -99,6 +102,9 @@ const POListPage = () => {
       field: 'indentRef',
       headerName: 'Indent Ref',
       flex: 1,
+      valueGetter: (value, row) => {
+        return row?.indentRef || row?.indent_ref || '';
+      },
     },
 
     {
@@ -117,9 +123,8 @@ const POListPage = () => {
       flex: 1,
 
       valueGetter: (value, row) => {
-        return row?.deliveryDate
-          ? formatDate(row.deliveryDate)
-          : '';
+        const d = row?.deliveryDate || row?.delivery_date;
+        return d ? formatDate(d) : '';
       },
     },
 
@@ -129,9 +134,8 @@ const POListPage = () => {
       flex: 1,
 
       valueGetter: (value, row) => {
-        return row?.totalAmount != null
-          ? formatCurrency(row.totalAmount)
-          : '';
+        const amt = row?.totalAmount != null ? row.totalAmount : row?.total_amount;
+        return amt != null ? formatCurrency(amt) : '';
       },
     },
 

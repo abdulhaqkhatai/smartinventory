@@ -69,12 +69,18 @@ const IndentListPage = () => {
       field: 'indentCode',
       headerName: 'Indent Code',
       flex: 1,
+      valueGetter: (value, row) => {
+        return row?.indentCode || row?.code || '';
+      },
     },
 
     {
       field: 'requestedBy',
       headerName: 'Requested By',
       flex: 1,
+      valueGetter: (value, row) => {
+        return row?.requestedBy || row?.requested_by || '';
+      },
     },
 
     {

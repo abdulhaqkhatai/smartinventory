@@ -33,10 +33,30 @@ const GRNListPage = () => {
 
   const columns = [
     { field: 'code', headerName: 'GRN Code', flex: 1 },
-    { field: 'poRef', headerName: 'PO Ref', flex: 1 },
-    { field: 'vendorName', headerName: 'Vendor', flex: 1.5 },
-    { field: 'date', headerName: 'Date', flex: 1, valueFormatter: (params) => formatDate(params.value) },
-    { field: 'receivedBy', headerName: 'Received By', flex: 1 },
+    { 
+      field: 'poRef', 
+      headerName: 'PO Ref', 
+      flex: 1,
+      valueGetter: (value, row) => row?.poRef || row?.po_ref || ''
+    },
+    { 
+      field: 'vendorName', 
+      headerName: 'Vendor', 
+      flex: 1.5,
+      valueGetter: (value, row) => row?.vendorName || row?.vendor_name || '' 
+    },
+    { 
+      field: 'date', 
+      headerName: 'Date', 
+      flex: 1, 
+      valueGetter: (value, row) => row?.date ? formatDate(row.date) : '' 
+    },
+    { 
+      field: 'receivedBy', 
+      headerName: 'Received By', 
+      flex: 1,
+      valueGetter: (value, row) => row?.receivedBy || row?.received_by || '' 
+    },
     {
       field: 'status',
       headerName: 'Status',
