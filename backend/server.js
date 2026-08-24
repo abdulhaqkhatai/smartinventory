@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import db, { testDatabaseConnection } from './config/db.js';
-import { verifyToken } from './middleware/auth.js';
+import { verifyToken, optionalAuth } from './middleware/auth.js';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
@@ -62,9 +62,9 @@ app.get('/api/health', (req, res) => {
 
 // Core API Routes (Intern 1: Auth, Items, Vendors, Dashboard Reports)
 app.use('/api/auth', authRoutes);
-app.use('/api/items', verifyToken, itemRoutes);
-app.use('/api/vendors', verifyToken, vendorRoutes);
-app.use('/api/reports', verifyToken, reportRoutes);
+app.use('/api/items', optionalAuth, itemRoutes);
+app.use('/api/vendors', optionalAuth, vendorRoutes);
+app.use('/api/reports', optionalAuth, reportRoutes);
 
 // Additional Modules (Intern 2 & Intern 3)
 app.use('/api/assets', assetRoutes);

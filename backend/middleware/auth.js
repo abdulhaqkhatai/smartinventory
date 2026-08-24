@@ -21,3 +21,23 @@ export const verifyToken = (req, res, next) => {
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
+
+export const optionalAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ')
+    ? authHeader.split(' ')[1]
+    : authHeader;
+
+  if (token) {
+    try {
+      const secret = process.env.JWT_SECRET || 'smart_inventory_jwt_secret_key_2026_secure';
+      const decoded = jwt.verify(token, secret);
+      req.userId = decoded.userId;
+      req.userRole = decoded.role;
+      req.username = decoded.username;
+    } catch {
+      // Ignore token parse error for optional auth
+    }
+  }
+  next();
+};
