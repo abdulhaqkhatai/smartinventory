@@ -9,11 +9,19 @@ import { useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PrintIcon from '@mui/icons-material/Print';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
 import { formatDate, getStatusColor, formatCurrency } from '../../utils/helpers';
+import { useDispatch } from 'react-redux';
+import { useSnackbar } from 'notistack';
+import { updatePOStatus } from './purchaseOrdersSlice';
 
 const PODetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { enqueueSnackbar } = useSnackbar();
   
   const { purchaseOrders } = useSelector(state => state.purchaseOrders);
   const po = purchaseOrders.find(p => String(p.id) === String(id));
@@ -21,6 +29,13 @@ const PODetailPage = () => {
   if (!po) {
     return <Typography>Purchase Order not found</Typography>;
   }
+
+  const handleStatusChange = (newStatus) => {
+    dispatch(updatePOStatus({ id: po.id, status: newStatus }))
+      .unwrap()
+      .then(() => enqueueSnackbar(`Purchase Order ${newStatus}`, { variant: 'success' }))
+      .catch((err) => enqueueSnackbar(err || 'Failed to update status', { variant: 'error' }));
+  };
 
   return (
     <Box component={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} sx={{ p: 3 }}>
@@ -36,6 +51,21 @@ const PODetailPage = () => {
           color={getStatusColor(po.status)} 
           sx={{ fontWeight: 'bold', px: 2, mr: 2 }}
         />
+        {po.status === 'pending' && (
+          <>
+            <Button variant="contained" color="primary" startIcon={<CheckIcon />} onClick={() => handleStatusChange('confirmed')} sx={{ mr: 1 }}>
+              Confirm
+            </Button>
+            <Button variant="outlined" color="error" startIcon={<CloseIcon />} onClick={() => handleStatusChange('cancelled')} sx={{ mr: 1 }}>
+              Cancel
+            </Button>
+          </>
+        )}
+        {po.status === 'confirmed' && (
+          <Button variant="contained" color="success" startIcon={<DoneAllIcon />} onClick={() => handleStatusChange('completed')} sx={{ mr: 1 }}>
+            Mark Completed
+          </Button>
+        )}
         <Button variant="outlined" startIcon={<PrintIcon />} onClick={() => window.print()}>
           Print
         </Button>
