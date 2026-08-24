@@ -112,7 +112,7 @@ const IssueReturnPage = () => {
   const isAdmin = userRole === 'admin';
   const isStoreManager = userRole === 'store_manager' || userRole === 'store manager';
   const isEmployee = userRole === 'employee';
-  const canIssueReturn = isAdmin || isStoreManager;
+  const canIssueReturn = isAdmin || isStoreManager || isEmployee;
 
   const filteredIssues = useMemo(() => {
     if (isEmployee) {
