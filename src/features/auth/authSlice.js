@@ -71,5 +71,24 @@ export const performLogin = (username, password) => async (dispatch) => {
   }
 };
 
+export const performRegister = ({username, email, password, role}) => async (dispatch) => {
+  dispatch(loginStart()); // we reuse loading state
+
+  try {
+    const response = await api.post('/auth/register', {
+      username,
+      email,
+      password,
+      role
+    });
+    // Don't auto-login here; we'll return the response so the page can handle success
+    dispatch(loginFailure(null)); // clear loading state without error
+    return response;
+  } catch (error) {
+    dispatch(loginFailure(error.message || 'Registration failed'));
+    throw error;
+  }
+};
+
 export const { loginStart, loginSuccess, loginFailure, logout, clearError, updateProfile } = authSlice.actions;
 export default authSlice.reducer;
