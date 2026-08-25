@@ -8,7 +8,8 @@ const mapGrnRow = (row) => {
   return {
     ...row,
     date: row.received_date,
-    status: row.status === 'verified' ? 'completed' : 'partial'
+    status: row.status === 'verified' ? 'completed' : 'partial',
+    items: typeof row.items === 'string' ? JSON.parse(row.items || '[]') : (row.items || [])
   };
 };
 

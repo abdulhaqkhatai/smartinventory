@@ -22,6 +22,15 @@ const fallbackPurchaseOrders = [
   },
 ];
 
+const parsePurchaseOrderItems = (po) => {
+  if (!po) return po;
+  
+  return {
+    ...po,
+    items: typeof po.items === 'string' ? JSON.parse(po.items || '[]') : (po.items || [])
+  };
+};
+
 const applyPurchaseOrderFilters = (rows, filters = {}) => {
   let result = [...rows];
 
@@ -66,7 +75,7 @@ export const getAllPurchaseOrders = async (filters = {}, limit = 20, offset = 0)
     values.push(parseInt(limit) || 20, parseInt(offset) || 0);
 
     const [pos] = await db.query(query, values);
-    return pos;
+    return pos.map(parsePurchaseOrderItems);
   } catch (error) {
     console.warn('Database error fetching purchase orders, using fallback data:', error.message);
     const rows = applyPurchaseOrderFilters(fallbackPurchaseOrders, filters);
@@ -106,7 +115,7 @@ export const getPurchaseOrderById = async (id) => {
       'SELECT * FROM purchase_orders WHERE id = ?',
       [id]
     );
-    return pos[0] || null;
+    return pos[0] ? parsePurchaseOrderItems(pos[0]) : null;
   } catch (error) {
     return fallbackPurchaseOrders.find((row) => row.id === Number(id)) || null;
   }

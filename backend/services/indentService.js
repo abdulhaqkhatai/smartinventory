@@ -21,6 +21,15 @@ const fallbackIndents = [
 
 const getFallbackIndents = () => fallbackIndents;
 
+const parseIndentItems = (indent) => {
+  if (!indent) return indent;
+  
+  return {
+    ...indent,
+    items: typeof indent.items === 'string' ? JSON.parse(indent.items || '[]') : (indent.items || [])
+  };
+};
+
 const applyIndentFilters = (rows, filters = {}) => {
   let result = [...rows];
 
@@ -56,7 +65,7 @@ export const getAllIndents = async (filters = {}, limit = 20, offset = 0) => {
     values.push(parseInt(limit) || 20, parseInt(offset) || 0);
 
     const [indents] = await db.query(query, values);
-    return indents;
+    return indents.map(parseIndentItems);
   } catch (error) {
     console.warn('Database error fetching indents, using fallback data:', error.message);
     const rows = applyIndentFilters(getFallbackIndents(), filters);
@@ -96,7 +105,7 @@ export const getIndentById = async (id) => {
       'SELECT * FROM indents WHERE id = ?',
       [id]
     );
-    return indents[0] || null;
+    return indents[0] ? parseIndentItems(indents[0]) : null;
   } catch (error) {
     return getFallbackIndents().find((item) => item.id === Number(id)) || null;
   }

@@ -120,7 +120,7 @@ const PODetailPage = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Item Code</TableCell>
+                  <TableCell>Item ID</TableCell>
                   <TableCell>Item Name</TableCell>
                   <TableCell>Unit</TableCell>
                   <TableCell align="right">Qty</TableCell>
@@ -130,17 +130,25 @@ const PODetailPage = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {po.items?.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{item.code}</TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.unit}</TableCell>
-                    <TableCell align="right">{item.quantity}</TableCell>
-                    <TableCell align="right">{formatCurrency(item.rate)}</TableCell>
-                    <TableCell align="right">{item.gst}%</TableCell>
-                    <TableCell align="right" fontWeight="bold">{formatCurrency(item.amount)}</TableCell>
+                {po.items && po.items.length > 0 ? (
+                  po.items.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{item.itemId || item.id || '-'}</TableCell>
+                      <TableCell>{item.itemName || item.name || '-'}</TableCell>
+                      <TableCell>{item.unit || '-'}</TableCell>
+                      <TableCell align="right">{item.quantity || 0}</TableCell>
+                      <TableCell align="right">{formatCurrency(item.rate || 0)}</TableCell>
+                      <TableCell align="right">{item.gstRate || item.gst || 0}%</TableCell>
+                      <TableCell align="right" fontWeight="bold">{formatCurrency((item.quantity || 0) * (item.rate || 0))}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">
+                      <Typography color="textSecondary">No items found</Typography>
+                    </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </TableContainer>

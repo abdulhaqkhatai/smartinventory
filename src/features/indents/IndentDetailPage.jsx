@@ -105,7 +105,7 @@ const IndentDetailPage = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Item Code</TableCell>
+                  <TableCell>Item ID</TableCell>
                   <TableCell>Item Name</TableCell>
                   <TableCell>Unit</TableCell>
                   <TableCell align="right">Quantity</TableCell>
@@ -113,15 +113,23 @@ const IndentDetailPage = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {indent.items?.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{item.code}</TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.unit}</TableCell>
-                    <TableCell align="right">{item.quantity}</TableCell>
-                    <TableCell>{item.remarks}</TableCell>
+                {indent.items && indent.items.length > 0 ? (
+                  indent.items.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{item.itemId || item.id || '-'}</TableCell>
+                      <TableCell>{item.itemName || item.name || '-'}</TableCell>
+                      <TableCell>{item.unit || '-'}</TableCell>
+                      <TableCell align="right">{item.quantity || 0}</TableCell>
+                      <TableCell>{item.remarks || '-'}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">
+                      <Typography color="textSecondary">No items found</Typography>
+                    </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </TableContainer>
