@@ -5,6 +5,8 @@ const router = express.Router();
 
 // Get current stock levels for all items
 router.get('/stock/levels', inventoryController.getStockLevels);
+router.get('/stock', inventoryController.getStockLevels);
+router.get('/movements', inventoryController.getAllStockMovements);
 
 // Get stock level for specific item
 router.get('/item/:itemId/stock', inventoryController.getItemStock);
