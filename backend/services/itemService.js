@@ -1,5 +1,24 @@
 import { pool } from '../config/db.js';
 
+export const normalizeUnit = (unit) => {
+  if (!unit) return 'PCS';
+  const u = String(unit).trim();
+  if (/^piece[s]?$/i.test(u)) return 'PCS';
+  if (/^box[es]?$/i.test(u)) return 'BOX';
+  if (/^number[s]?$/i.test(u)) return 'NOS';
+  if (/^set[s]?$/i.test(u)) return 'SET';
+  if (/^pack[s]?$/i.test(u)) return 'PAC';
+  if (/^ream[s]?$/i.test(u)) return 'REM';
+  if (/^dozen[s]?$/i.test(u)) return 'DZN';
+  if (/^pair[s]?$/i.test(u)) return 'PR';
+  if (/^roll[s]?$/i.test(u)) return 'ROL';
+  if (/^kilogram[s]?|kg[s]?$/i.test(u)) return 'KG';
+  if (/^gram[s]?|gm[s]?$/i.test(u)) return 'GM';
+  if (/^liter[s]?|ltr[s]?$/i.test(u)) return 'LTR';
+  if (/^meter[s]?|mtr[s]?$/i.test(u)) return 'MTR';
+  return u.toUpperCase();
+};
+
 export const formatItem = (item) => {
   if (!item) return null;
   const id = item.id;
@@ -11,6 +30,7 @@ export const formatItem = (item) => {
   const stock = Number(item.quantity_in_stock ?? item.currentStock ?? 0);
   const price = Number(item.unit_price ?? item.unitPrice ?? 0);
   const imageUrl = item.image_url || item.imageUrl || '';
+  const unit = normalizeUnit(item.unit);
 
   return {
     ...item,
@@ -19,7 +39,7 @@ export const formatItem = (item) => {
     name: item.name,
     category: item.category || 'General',
     brand: item.brand || '',
-    unit: item.unit || 'Piece',
+    unit,
     hsn: item.hsn_code || item.hsn || '',
     hsn_code: item.hsn_code || item.hsn || '',
     gstRate: gst,
@@ -70,9 +90,9 @@ export const itemService = {
 
   async createItem(itemData) {
     const name = itemData.name;
-    const category = itemData.category;
+    const category = itemData.category || 'General';
     const brand = itemData.brand || '';
-    const unit = itemData.unit || 'Piece';
+    const unit = normalizeUnit(itemData.unit || 'PCS');
     const hsn_code = itemData.hsn_code || itemData.hsn || '';
     const gst_rate = itemData.gst_rate ?? itemData.gstRate ?? 18;
     const min_stock = itemData.min_stock ?? itemData.minStock ?? 0;
@@ -113,9 +133,9 @@ export const itemService = {
 
   async updateItem(id, itemData) {
     const name = itemData.name;
-    const category = itemData.category;
+    const category = itemData.category || 'General';
     const brand = itemData.brand || '';
-    const unit = itemData.unit || 'Piece';
+    const unit = normalizeUnit(itemData.unit || 'PCS');
     const hsn_code = itemData.hsn_code || itemData.hsn || '';
     const gst_rate = itemData.gst_rate ?? itemData.gstRate ?? 18;
     const min_stock = itemData.min_stock ?? itemData.minStock ?? 0;

@@ -9,25 +9,35 @@ export const mockUsers = [
 ];
 
 export const mockCategories = [
-  { id: 1, name: 'Office Supplies', code: 'OS' },
+  { id: 1, name: 'Electronics', code: 'EC' },
   { id: 2, name: 'IT Equipment', code: 'IT' },
-  { id: 3, name: 'Furniture', code: 'FN' },
-  { id: 4, name: 'Electrical', code: 'EL' },
-  { id: 5, name: 'Stationery', code: 'ST' },
-  { id: 6, name: 'Cleaning Supplies', code: 'CL' },
-  { id: 7, name: 'Safety Equipment', code: 'SE' },
-  { id: 8, name: 'Packaging Material', code: 'PM' },
+  { id: 3, name: 'Office Supplies', code: 'OS' },
+  { id: 4, name: 'Furniture', code: 'FN' },
+  { id: 5, name: 'Electrical', code: 'EL' },
+  { id: 6, name: 'Accessories', code: 'AC' },
+  { id: 7, name: 'Stationery', code: 'ST' },
+  { id: 8, name: 'Cleaning Supplies', code: 'CL' },
+  { id: 9, name: 'Safety Equipment', code: 'SE' },
+  { id: 10, name: 'Packaging Material', code: 'PM' },
+  { id: 11, name: 'Hardware', code: 'HW' },
+  { id: 12, name: 'Raw Material', code: 'RM' },
+  { id: 13, name: 'General', code: 'GN' },
 ];
 
 export const mockUnits = [
   { id: 1, name: 'Pieces', code: 'PCS' },
-  { id: 2, name: 'Kilograms', code: 'KG' },
-  { id: 3, name: 'Liters', code: 'LTR' },
-  { id: 4, name: 'Meters', code: 'MTR' },
-  { id: 5, name: 'Box', code: 'BOX' },
-  { id: 6, name: 'Dozen', code: 'DZN' },
-  { id: 7, name: 'Set', code: 'SET' },
-  { id: 8, name: 'Ream', code: 'REM' },
+  { id: 2, name: 'Numbers', code: 'NOS' },
+  { id: 3, name: 'Box', code: 'BOX' },
+  { id: 4, name: 'Set', code: 'SET' },
+  { id: 5, name: 'Pack', code: 'PAC' },
+  { id: 6, name: 'Kilograms', code: 'KG' },
+  { id: 7, name: 'Grams', code: 'GM' },
+  { id: 8, name: 'Liters', code: 'LTR' },
+  { id: 9, name: 'Meters', code: 'MTR' },
+  { id: 10, name: 'Ream', code: 'REM' },
+  { id: 11, name: 'Dozen', code: 'DZN' },
+  { id: 12, name: 'Pair', code: 'PR' },
+  { id: 13, name: 'Roll', code: 'ROL' },
 ];
 
 export const mockItems = [

@@ -24,11 +24,56 @@ const schema = yup.object().shape({
   image_url: yup.string().url('Must be a valid URL').nullable().transform((v) => (v === '' ? null : v)),
 });
 
+const normalizeUnit = (unit) => {
+  if (!unit) return 'PCS';
+  const u = String(unit).trim();
+  if (/^piece[s]?$/i.test(u)) return 'PCS';
+  if (/^box[es]?$/i.test(u)) return 'BOX';
+  if (/^number[s]?$/i.test(u)) return 'NOS';
+  if (/^set[s]?$/i.test(u)) return 'SET';
+  if (/^pack[s]?$/i.test(u)) return 'PAC';
+  if (/^ream[s]?$/i.test(u)) return 'REM';
+  if (/^dozen[s]?$/i.test(u)) return 'DZN';
+  if (/^pair[s]?$/i.test(u)) return 'PR';
+  if (/^roll[s]?$/i.test(u)) return 'ROL';
+  if (/^kilogram[s]?|kg[s]?$/i.test(u)) return 'KG';
+  if (/^gram[s]?|gm[s]?$/i.test(u)) return 'GM';
+  if (/^liter[s]?|ltr[s]?$/i.test(u)) return 'LTR';
+  if (/^meter[s]?|mtr[s]?$/i.test(u)) return 'MTR';
+  return u.toUpperCase();
+};
+
 const ItemFormDialog = ({ open, onClose }) => {
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
-  const { selectedItem, loading } = useSelector(state => state.items);
+  const { selectedItem, items, loading } = useSelector(state => state.items);
   const isEdit = Boolean(selectedItem);
+
+  // Compute available categories dynamically
+  const categories = React.useMemo(() => {
+    const defaultCats = mockCategories.map(c => (typeof c === 'object' ? c.name : c));
+    const itemCats = (items || []).map(i => i.category).filter(Boolean);
+    const selectedCat = selectedItem?.category;
+    const set = new Set([...defaultCats, ...itemCats]);
+    if (selectedCat) set.add(selectedCat);
+    return Array.from(set).filter(Boolean);
+  }, [items, selectedItem]);
+
+  // Compute available units dynamically
+  const units = React.useMemo(() => {
+    const defaultUnits = [...mockUnits];
+    const itemUnits = (items || []).map(i => normalizeUnit(i.unit)).filter(Boolean);
+    const selectedUnit = selectedItem?.unit ? normalizeUnit(selectedItem.unit) : null;
+    const existingCodes = new Set(defaultUnits.map(u => u.code));
+    
+    [...itemUnits, selectedUnit].forEach(code => {
+      if (code && !existingCodes.has(code)) {
+        defaultUnits.push({ id: code, name: code, code });
+        existingCodes.add(code);
+      }
+    });
+    return defaultUnits;
+  }, [items, selectedItem]);
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
@@ -37,7 +82,7 @@ const ItemFormDialog = ({ open, onClose }) => {
       name: '',
       category: '',
       brand: '',
-      unit: 'Piece',
+      unit: 'PCS',
       hsn_code: '',
       gst_rate: 18,
       min_stock: 0,
@@ -55,7 +100,7 @@ const ItemFormDialog = ({ open, onClose }) => {
         name: selectedItem.name || '',
         category: selectedItem.category || '',
         brand: selectedItem.brand || '',
-        unit: selectedItem.unit || 'Piece',
+        unit: normalizeUnit(selectedItem.unit || 'PCS'),
         hsn_code: selectedItem.hsn_code || selectedItem.hsn || '',
         gst_rate: selectedItem.gst_rate ?? selectedItem.gstRate ?? 18,
         min_stock: selectedItem.min_stock ?? selectedItem.minStock ?? 0,
@@ -70,7 +115,7 @@ const ItemFormDialog = ({ open, onClose }) => {
         name: '',
         category: '',
         brand: '',
-        unit: 'Piece',
+        unit: 'PCS',
         hsn_code: '',
         gst_rate: 18,
         min_stock: 0,
@@ -123,10 +168,9 @@ const ItemFormDialog = ({ open, onClose }) => {
             <Grid item xs={12} sm={4}>
               <Controller name="category" control={control} render={({ field }) => (
                 <TextField {...field} select label="Category" fullWidth error={!!errors.category} helperText={errors.category?.message}>
-                  {mockCategories.map(c => {
-                    const catName = typeof c === 'object' ? c.name : c;
-                    return <MenuItem key={catName} value={catName}>{catName}</MenuItem>;
-                  })}
+                  {categories.map(catName => (
+                    <MenuItem key={catName} value={catName}>{catName}</MenuItem>
+                  ))}
                 </TextField>
               )} />
             </Grid>
@@ -138,10 +182,11 @@ const ItemFormDialog = ({ open, onClose }) => {
             <Grid item xs={12} sm={4}>
               <Controller name="unit" control={control} render={({ field }) => (
                 <TextField {...field} select label="Unit" fullWidth error={!!errors.unit} helperText={errors.unit?.message}>
-                  {mockUnits.map(u => {
-                    const unitName = typeof u === 'object' ? (u.code || u.name) : u;
-                    return <MenuItem key={unitName} value={unitName}>{unitName}</MenuItem>;
-                  })}
+                  {units.map(u => (
+                    <MenuItem key={u.code} value={u.code}>
+                      {u.name === u.code ? u.code : `${u.name} (${u.code})`}
+                    </MenuItem>
+                  ))}
                 </TextField>
               )} />
             </Grid>

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Box, Typography, Button, TextField, MenuItem, IconButton, Chip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Paper, Avatar } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { alpha, useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, Inventory2 as InventoryIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '../../utils/helpers';
@@ -12,7 +12,6 @@ import ItemFormDialog from './ItemFormDialog';
 import { useSnackbar } from 'notistack';
 
 const ItemListPage = () => {
-  const theme = useTheme();
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
   const { items, loading, error } = useSelector(state => state.items);
@@ -34,16 +33,28 @@ const ItemListPage = () => {
     }
   }, [error, dispatch, enqueueSnackbar]);
 
+  const categoryOptions = useMemo(() => {
+    const defaultCats = mockCategories.map(c => (typeof c === 'object' ? c.name : c));
+    const itemCats = (items || []).map(i => i.category).filter(Boolean);
+    const set = new Set([...defaultCats, ...itemCats]);
+    return Array.from(set).filter(Boolean);
+  }, [items]);
+
   const filteredItems = useMemo(() => {
     return items.filter(item => {
       const code = item.code || '';
       const name = item.name || '';
       const brand = item.brand || '';
+      const category = item.category || '';
+      const unit = item.unit || '';
+      const s = searchTerm.toLowerCase();
       const matchesSearch =
-        name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        brand.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
+        name.toLowerCase().includes(s) ||
+        code.toLowerCase().includes(s) ||
+        brand.toLowerCase().includes(s) ||
+        category.toLowerCase().includes(s) ||
+        unit.toLowerCase().includes(s);
+      const matchesCategory = categoryFilter === 'All' || (item.category && item.category.toLowerCase() === categoryFilter.toLowerCase());
       return matchesSearch && matchesCategory;
     });
   }, [items, searchTerm, categoryFilter]);
@@ -85,9 +96,48 @@ const ItemListPage = () => {
     },
     { field: 'code', headerName: 'Code', width: 110 },
     { field: 'name', headerName: 'Item Name', flex: 1, minWidth: 200 },
-    { field: 'category', headerName: 'Category', width: 130 },
+    {
+      field: 'category',
+      headerName: 'Category',
+      width: 150,
+      renderCell: (params) => {
+        const cat = params.value || params.row?.category || 'General';
+        return (
+          <Chip
+            label={cat}
+            size="small"
+            variant="outlined"
+            sx={{
+              borderColor: alpha('#00BFA6', 0.5),
+              color: '#00BFA6',
+              fontWeight: 500,
+              bgcolor: alpha('#00BFA6', 0.08)
+            }}
+          />
+        );
+      }
+    },
     { field: 'brand', headerName: 'Brand', width: 120 },
-    { field: 'unit', headerName: 'Unit', width: 80 },
+    {
+      field: 'unit',
+      headerName: 'Unit',
+      width: 90,
+      renderCell: (params) => {
+        const unit = params.value || params.row?.unit || 'PCS';
+        return (
+          <Chip
+            label={unit}
+            size="small"
+            sx={{
+              bgcolor: alpha('#90caf9', 0.15),
+              color: '#90caf9',
+              fontWeight: 500,
+              border: `1px solid ${alpha('#90caf9', 0.3)}`
+            }}
+          />
+        );
+      }
+    },
     { field: 'hsn', headerName: 'HSN', width: 100 },
     {
       field: 'gstRate',
@@ -162,7 +212,7 @@ const ItemListPage = () => {
 
       <Paper sx={{ p: 2, mb: 2, bgcolor: '#132F4C', borderRadius: 2, display: 'flex', gap: 2 }}>
         <TextField
-          placeholder="Search by code, name, brand..."
+          placeholder="Search by code, name, brand, category, unit..."
           variant="outlined"
           size="small"
           value={searchTerm}
@@ -179,14 +229,11 @@ const ItemListPage = () => {
           sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { bgcolor: alpha('#0A1929', 0.5) } }}
         >
           <MenuItem value="All">All Categories</MenuItem>
-          {mockCategories.map(cat => {
-            const catName = typeof cat === 'object' ? cat.name : cat;
-            return (
-              <MenuItem key={catName} value={catName}>
-                {catName}
-              </MenuItem>
-            );
-          })}
+          {categoryOptions.map(catName => (
+            <MenuItem key={catName} value={catName}>
+              {catName}
+            </MenuItem>
+          ))}
         </TextField>
       </Paper>
 
