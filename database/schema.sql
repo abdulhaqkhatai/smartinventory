@@ -10,14 +10,13 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(100) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(50) DEFAULT 'user', -- 'admin', 'store_manager', 'purchase_manager', 'employee', 'user'
+  location VARCHAR(100) DEFAULT 'General',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_username (username),
   INDEX idx_role (role)
 );
 
--- ===================================
--- ITEMS TABLE (Item Master)
 -- ===================================
 CREATE TABLE IF NOT EXISTS items (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -194,3 +193,167 @@ INSERT IGNORE INTO vendors (name, contact_person, email, phone, city, state, gst
 ('Electronics Hub', 'Amit Patel', 'amit@elecHub.com', '9876543212', 'Bangalore', 'Karnataka', '29AABCU9012H3Z2', 'CCCPC9012M', 'Axis Bank', '1122334455667', 'AXIS0000003', 'active', 3),
 ('Global Import Services', 'Sanjay Singh', 'sanjay@globalimp.com', '9876543213', 'Pune', 'Maharashtra', '27AABCV3456H4Z3', 'DDDPD3456N', 'BOB Bank', '9988776655443', 'BARB0000004', 'inactive', 2),
 ('Premium Distributors', 'Neha Gupta', 'neha@premdist.com', '9876543214', 'Hyderabad', 'Telangana', '36AABCW7890H5Z4', 'EEEPV7890O', 'SBI Bank', '5566778899001', 'SBIN0000005', 'blacklisted', 1);
+-- ============================================================
+-- 10. GRNs (Intern 2)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS grns (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    po_ref VARCHAR(50) NOT NULL,
+    vendor_name VARCHAR(150),
+    date DATE NOT NULL,
+    received_by VARCHAR(150) NOT NULL,
+    status ENUM('completed','partial') NOT NULL DEFAULT 'completed',
+    items JSON NOT NULL,
+    remarks VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_grn_code (code),
+    INDEX idx_grn_po_ref (po_ref),
+    INDEX idx_grn_status (status),
+    INDEX idx_grn_received_by (received_by),
+    INDEX idx_grn_date (date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- 11. STOCK MOVEMENTS (Intern 2)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS stock_movements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    item_id INT,
+    date DATE NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    quantity INT NOT NULL,
+    reference VARCHAR(100),
+    warehouse VARCHAR(100),
+    performed_by VARCHAR(150),
+    remarks VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_stock_item (item_id),
+    INDEX idx_stock_type (type),
+    INDEX idx_stock_date (date),
+    INDEX idx_stock_reference (reference),
+    INDEX idx_stock_warehouse (warehouse)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- 12. STOCK ADJUSTMENTS (Intern 2)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS stock_adjustments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    item_id INT,
+    adjustment_type ENUM('INCREASE','DECREASE') NOT NULL,
+    quantity INT NOT NULL,
+    previous_stock INT NOT NULL DEFAULT 0,
+    new_stock INT NOT NULL DEFAULT 0,
+    reason VARCHAR(500) NOT NULL,
+    warehouse VARCHAR(100),
+    adjusted_by VARCHAR(150),
+    adjustment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_adjustment_item (item_id),
+    INDEX idx_adjustment_type (adjustment_type),
+    INDEX idx_adjustment_date (adjustment_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- 13. ASSETS (Intern 3)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS assets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    asset_code VARCHAR(100) NOT NULL UNIQUE,
+    asset_name VARCHAR(255) NOT NULL,
+    category VARCHAR(100),
+    serial_number VARCHAR(255),
+    purchase_date DATE,
+    purchase_price DECIMAL(12,2),
+    location VARCHAR(255),
+    status ENUM('AVAILABLE','ISSUED','DAMAGED') NOT NULL DEFAULT 'AVAILABLE',
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_asset_code (asset_code),
+    INDEX idx_asset_category (category),
+    INDEX idx_asset_serial (serial_number),
+    INDEX idx_asset_status (status),
+    INDEX idx_asset_location (location)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- 14. ISSUE TRANSACTIONS (Intern 3)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS issue_transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    asset_id INT NOT NULL,
+    user_id INT,
+    issue_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expected_return_date DATETIME,
+    issue_condition VARCHAR(255),
+    notes TEXT,
+    status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Approved',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_issue_asset (asset_id),
+    INDEX idx_issue_user (user_id),
+    INDEX idx_issue_date (issue_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- 15. RETURN TRANSACTIONS (Intern 3)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS return_transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    asset_id INT NOT NULL,
+    user_id INT,
+    return_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    return_condition VARCHAR(255),
+    damage_description TEXT,
+    notes TEXT,
+    status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Approved',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_return_asset (asset_id),
+    INDEX idx_return_user (user_id),
+    INDEX idx_return_date (return_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- 16. ASSET ASSIGNMENTS (Intern 3)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS asset_assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    asset_id INT NOT NULL,
+    user_id INT,
+    status ENUM('ACTIVE','RETURNED') NOT NULL DEFAULT 'ACTIVE',
+    assigned_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    returned_date DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_assignment_asset (asset_id),
+    INDEX idx_assignment_user (user_id),
+    INDEX idx_assignment_status (status),
+    INDEX idx_assignment_assigned_date (assigned_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- VIEWS (for reporting)
+-- ============================================================
+CREATE OR REPLACE VIEW low_stock_items AS
+SELECT id, code, name, quantity_in_stock as current_stock, reorder_level, 
+       (reorder_level - quantity_in_stock) as quantity_to_order
+FROM items
+WHERE quantity_in_stock <= reorder_level
+ORDER BY quantity_in_stock ASC;
+
+CREATE OR REPLACE VIEW pending_pos AS
+SELECT id, code, vendor_name, date, delivery_date, total_amount, status
+FROM purchase_orders
+WHERE status IN ('pending', 'confirmed')
+ORDER BY delivery_date ASC;
+
+CREATE OR REPLACE VIEW open_indents AS
+SELECT id, code, requested_by, department, date, status
+FROM indents
+WHERE status IN ('draft', 'submitted')
+ORDER BY date DESC;
+

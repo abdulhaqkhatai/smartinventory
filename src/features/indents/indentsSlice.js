@@ -114,7 +114,7 @@ const indentsSlice = createSlice({
     },
     updateIndentStatus(state, action) {
       const { id, status, approvedBy, rejectionReason } = action.payload;
-      const indent = state.indents.find((indent) => indent.id === id);
+      const indent = state.indents.find((indent) => String(indent.id) === String(id));
       if (indent) {
         indent.status = status;
         if (approvedBy) indent.approvedBy = approvedBy;

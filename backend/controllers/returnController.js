@@ -2,6 +2,7 @@ import {
   createReturn,
   getAllReturns,
   getReturnById,
+  updateReturnStatus,
 } from "../services/returnService.js";
 
 
@@ -24,6 +25,9 @@ const createReturnController = async (req, res) => {
       });
     }
 
+    const userRole = (req.userRole || '').toLowerCase();
+    const status = userRole === 'employee' ? 'Pending' : 'Approved';
+
     const result = await createReturn({
       asset_id,
       user_id,
@@ -31,6 +35,7 @@ const createReturnController = async (req, res) => {
       return_condition,
       damage_description,
       notes,
+      status,
     });
 
     return res.status(201).json({
@@ -98,8 +103,31 @@ const getReturnByIdController = async (req, res) => {
 };
 
 
+const updateReturnStatusController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!status || !['Approved', 'Rejected'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const updatedReturn = await updateReturnStatus(id, status);
+    res.json({ success: true, data: updatedReturn });
+  } catch (error) {
+    console.error("Update Return Status Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update status",
+      error: error.message,
+    });
+  }
+};
+
+
 export {
   createReturnController,
   getAllReturnsController,
   getReturnByIdController,
+  updateReturnStatusController,
 };

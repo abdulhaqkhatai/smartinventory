@@ -5,6 +5,7 @@ import ProtectedRoute from '../features/auth/ProtectedRoute';
 
 // Lazy load pages for code splitting
 const LoginPage = lazy(() => import('../features/auth/LoginPage'));
+const RegisterPage = lazy(() => import('../features/auth/RegisterPage'));
 const ChangePasswordPage = lazy(() => import('../features/auth/ChangePasswordPage'));
 const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage'));
 const ItemListPage = lazy(() => import('../features/items/ItemListPage'));
@@ -52,6 +53,14 @@ export const getRoutes = (DashboardLayout, themeMode, toggleTheme) => {
       element: (
         <LazyPage>
           <LoginPage />
+        </LazyPage>
+      ),
+    },
+    {
+      path: '/register',
+      element: (
+        <LazyPage>
+          <RegisterPage />
         </LazyPage>
       ),
     },

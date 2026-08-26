@@ -11,7 +11,7 @@ const GRNDetailPage = () => {
   const navigate = useNavigate();
   const { grns } = useSelector(state => state.grn);
   
-  const grn = grns.find(g => g.id === Number(id));
+  const grn = grns.find(g => String(g.id) === String(id));
 
   if (!grn) {
     return <Typography sx={{ p: 3 }}>GRN not found.</Typography>;
@@ -70,27 +70,35 @@ const GRNDetailPage = () => {
             <Table>
               <TableHead sx={{ bgcolor: 'background.default' }}>
                 <TableRow>
-                  <TableCell>Item</TableCell>
-                  <TableCell align="right">Ordered</TableCell>
-                  <TableCell align="right">Received</TableCell>
-                  <TableCell align="right">Damaged</TableCell>
-                  <TableCell align="right">Accepted</TableCell>
+                  <TableCell>Item Name</TableCell>
+                  <TableCell align="right">Ordered Qty</TableCell>
+                  <TableCell align="right">Received Qty</TableCell>
+                  <TableCell align="right">Damaged Qty</TableCell>
+                  <TableCell align="right">Accepted Qty</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {grn.items.map((item, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{item.itemName}</TableCell>
-                    <TableCell align="right">{item.orderedQty}</TableCell>
-                    <TableCell align="right">{item.receivedQty}</TableCell>
-                    <TableCell align="right" sx={{ color: item.damagedQty > 0 ? 'error.main' : 'inherit' }}>
-                      {item.damagedQty}
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                      {item.acceptedQty}
+                {grn.items && grn.items.length > 0 ? (
+                  grn.items.map((item, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>{item.itemName || item.name || '-'}</TableCell>
+                      <TableCell align="right">{item.orderedQty || item.quantity || 0}</TableCell>
+                      <TableCell align="right">{item.receivedQty || item.quantity || 0}</TableCell>
+                      <TableCell align="right" sx={{ color: (item.damagedQty || 0) > 0 ? 'error.main' : 'inherit' }}>
+                        {item.damagedQty || 0}
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                        {item.acceptedQty || item.receivedQty || item.quantity || 0}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">
+                      <Typography color="textSecondary">No items found</Typography>
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </TableContainer>

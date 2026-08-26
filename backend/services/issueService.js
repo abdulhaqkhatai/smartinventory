@@ -12,6 +12,7 @@ const createIssue = async (issueData) => {
     expected_return_date,
     issue_condition,
     notes,
+    status = 'Approved',
   } = issueData;
 
   const [assetRows] = await pool.execute(`SELECT id FROM assets WHERE id = ?`, [
@@ -31,9 +32,10 @@ const createIssue = async (issueData) => {
         issue_date,
         expected_return_date,
         issue_condition,
-        notes
+        notes,
+        status
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `,
     [
       asset_id,
@@ -42,28 +44,31 @@ const createIssue = async (issueData) => {
       expected_return_date || null,
       issue_condition || null,
       notes || null,
+      status,
     ],
   );
 
-  // Asset status update
-  await pool.execute(
-    `
-      UPDATE assets
-      SET status = 'ISSUED'
-      WHERE id = ?
-    `,
-    [asset_id],
-  );
+  if (status === 'Approved') {
+    // Asset status update
+    await pool.execute(
+      `
+        UPDATE assets
+        SET status = 'ISSUED'
+        WHERE id = ?
+      `,
+      [asset_id],
+    );
 
-  // Asset assignment insertion
-  await pool.execute(
-    `
+    // Asset assignment insertion
+    await pool.execute(
+      `
       INSERT INTO asset_assignments
       (asset_id, user_id, status, assigned_date)
       VALUES (?, ?, 'ACTIVE', ?)
     `,
-    [asset_id, user_id, issue_date || new Date().toISOString().slice(0, 19).replace('T', ' ')]
-  );
+      [asset_id, user_id, issue_date || new Date().toISOString().slice(0, 19).replace('T', ' ')]
+    );
+  }
 
   return {
     id: result.insertId,
@@ -129,4 +134,27 @@ const getIssueById = async (id) => {
   return rows[0];
 };
 
-export { createIssue, getAllIssues, getIssueById };
+const updateIssueStatus = async (id, status) => {
+  const [issueRows] = await pool.execute('SELECT * FROM issue_transactions WHERE id = ?', [id]);
+  if (issueRows.length === 0) throw new Error('Issue not found');
+  
+  const issue = issueRows[0];
+  
+  if (status === 'Approved' && issue.status === 'Pending') {
+    await pool.execute('UPDATE issue_transactions SET status = ? WHERE id = ?', [status, id]);
+    
+    // Update asset
+    await pool.execute('UPDATE assets SET status = "ISSUED" WHERE id = ?', [issue.asset_id]);
+    
+    // Add assignment
+    await pool.execute(
+      `INSERT INTO asset_assignments (asset_id, user_id, status, assigned_date) VALUES (?, ?, 'ACTIVE', ?)`,
+      [issue.asset_id, issue.user_id, new Date().toISOString().slice(0, 19).replace('T', ' ')]
+    );
+  } else {
+    await pool.execute('UPDATE issue_transactions SET status = ? WHERE id = ?', [status, id]);
+  }
+  return { id, status };
+};
+
+export { createIssue, getAllIssues, getIssueById, updateIssueStatus };

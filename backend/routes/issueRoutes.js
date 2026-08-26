@@ -4,6 +4,7 @@ import {
   createIssueController,
   getAllIssuesController,
   getIssueByIdController,
+  updateIssueStatusController,
 } from "../controllers/issueController.js";
 
 const router = express.Router();
@@ -16,5 +17,8 @@ router.get("/", getAllIssuesController);
 
 // GET /api/issues/:id
 router.get("/:id", getIssueByIdController);
+
+// PATCH /api/issues/:id/status
+router.patch("/:id/status", updateIssueStatusController);
 
 export default router;

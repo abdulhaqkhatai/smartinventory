@@ -8,6 +8,7 @@ const createReturn = async ({
   return_condition,
   damage_description,
   notes,
+  status = 'Approved',
 }) => {
   const connection = await pool.getConnection();
 
@@ -39,9 +40,10 @@ const createReturn = async ({
         return_date,
         return_condition,
         damage_description,
-        notes
+        notes,
+        status
       )
-      VALUES (?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         asset_id,
         user_id,
@@ -49,10 +51,12 @@ const createReturn = async ({
         return_condition || null,
         damage_description || null,
         notes || null,
+        status,
       ]
     );
 
-    // Close active assignment
+    if (status === 'Approved') {
+      // Close active assignment
     await connection.execute(
       `UPDATE asset_assignments
        SET
@@ -78,15 +82,16 @@ const createReturn = async ({
       newStatus = "DAMAGED";
     }
 
-    await connection.execute(
-      `UPDATE assets
-       SET status = ?
-       WHERE id = ?`,
-      [
-        newStatus,
-        asset_id,
-      ]
-    );
+      await connection.execute(
+        `UPDATE assets
+         SET status = ?
+         WHERE id = ?`,
+        [
+          newStatus,
+          asset_id,
+        ]
+      );
+    }
 
     await connection.commit();
 
@@ -162,9 +167,52 @@ const getReturnById = async (id) => {
   return rows[0];
 };
 
+const updateReturnStatus = async (id, status) => {
+  const [returnRows] = await pool.execute('SELECT * FROM return_transactions WHERE id = ?', [id]);
+  if (returnRows.length === 0) throw new Error('Return transaction not found');
+  
+  const rt = returnRows[0];
+  
+  if (status === 'Approved' && rt.status === 'Pending') {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      
+      await connection.execute('UPDATE return_transactions SET status = ? WHERE id = ?', [status, id]);
+      
+      // Close active assignment
+      await connection.execute(
+        `UPDATE asset_assignments SET status = 'RETURNED', returned_date = ? WHERE asset_id = ? AND user_id = ? AND status = 'ACTIVE'`,
+        [rt.return_date, rt.asset_id, rt.user_id]
+      );
+      
+      // Update asset status
+      let newStatus = "AVAILABLE";
+      if (rt.return_condition && rt.return_condition.toLowerCase() === "damaged") {
+        newStatus = "DAMAGED";
+      }
+      await connection.execute(
+        `UPDATE assets SET status = ? WHERE id = ?`,
+        [newStatus, rt.asset_id]
+      );
+      
+      await connection.commit();
+    } catch (e) {
+      await connection.rollback();
+      throw e;
+    } finally {
+      connection.release();
+    }
+  } else {
+    await pool.execute('UPDATE return_transactions SET status = ? WHERE id = ?', [status, id]);
+  }
+  return { id, status };
+};
+
 
 export {
   createReturn,
   getAllReturns,
   getReturnById,
+  updateReturnStatus
 };

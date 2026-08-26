@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 // We should ideally fetch POs from a poSlice, but we'll import mock data directly if needed, or assume it's available.
 // For now, importing from mockData for dropdown.
 import { mockPurchaseOrders } from '../../services/mockData';
+import api from '../../services/api';
 
 const GRNFormPage = () => {
   const navigate = useNavigate();
@@ -57,7 +58,9 @@ const GRNFormPage = () => {
     setItems(newItems);
   };
 
-  const handleSubmit = (e) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedPOId || items.length === 0) {
       enqueueSnackbar('Please select a PO', { variant: 'warning' });
@@ -69,9 +72,7 @@ const GRNFormPage = () => {
     // Check if fully or partially received
     const isPartial = items.some(item => item.acceptedQty < item.orderedQty);
 
-    const newGRN = {
-      id: generateId(), // simple mock id gen
-      code: `GRN-${dayjs().format('YYYY')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+    const payload = {
       poRef: po.code,
       vendorName: po.vendorName,
       date: formData.date,
@@ -88,9 +89,32 @@ const GRNFormPage = () => {
       remarks: formData.remarks
     };
 
-    dispatch(addGRN(newGRN));
-    enqueueSnackbar('GRN Created Successfully', { variant: 'success' });
-    navigate('/grn');
+    try {
+      setIsSubmitting(true);
+      const response = await api.post('/grn', payload);
+      const createdGRN = response?.data?.data || response?.data;
+
+      // Formatting for Redux Store
+      const newGRN = {
+        id: createdGRN.id || generateId(),
+        code: createdGRN.code || `GRN-${dayjs().format('YYYY')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+        poRef: createdGRN.po_ref || payload.poRef,
+        vendorName: createdGRN.vendor_name || payload.vendorName,
+        date: createdGRN.date || payload.date,
+        receivedBy: createdGRN.received_by || payload.receivedBy,
+        status: createdGRN.status || payload.status,
+        items: typeof createdGRN.items === 'string' ? JSON.parse(createdGRN.items) : (createdGRN.items || payload.items),
+        remarks: createdGRN.remarks || payload.remarks
+      };
+
+      dispatch(addGRN(newGRN));
+      enqueueSnackbar('GRN Created Successfully', { variant: 'success' });
+      navigate('/grn');
+    } catch (error) {
+      enqueueSnackbar(error?.response?.data?.message || error.message || 'Failed to create GRN', { variant: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -98,7 +122,7 @@ const GRNFormPage = () => {
       <Box sx={{ p: 3, maxWidth: 1000, mx: 'auto' }}>
         <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>Create Goods Receipt Note</Typography>
         
-        <Paper sx={{ p: 3, mb: 3 }}>
+        <Paper sx={{ p: 3, borderRadius: 2 }}>
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12} md={6}>

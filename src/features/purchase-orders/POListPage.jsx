@@ -8,6 +8,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 
+
 import { DataGrid } from '@mui/x-data-grid';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -51,7 +52,7 @@ const POListPage = () => {
     }
 
     return purchaseOrders.filter(
-      (po) => po.status === status
+      (po) => String(po.status).toLowerCase() === status.toLowerCase()
     ).length;
   };
 
@@ -59,7 +60,7 @@ const POListPage = () => {
     filter === 'All'
       ? purchaseOrders
       : purchaseOrders.filter(
-          (po) => po.status === filter
+          (po) => String(po.status).toLowerCase() === filter.toLowerCase()
         );
 
   if (loading) {
@@ -82,6 +83,9 @@ const POListPage = () => {
       field: 'poCode',
       headerName: 'PO Code',
       flex: 1,
+      valueGetter: (value, row) => {
+        return row?.poCode || row?.code || '';
+      },
     },
 
     {
@@ -91,7 +95,7 @@ const POListPage = () => {
 
       // MUI X DataGrid current valueGetter syntax
       valueGetter: (value, row) => {
-        return row?.vendor?.name || '';
+        return row?.vendor?.name || row?.vendorName || row?.vendor_name || '';
       },
     },
 
@@ -99,6 +103,9 @@ const POListPage = () => {
       field: 'indentRef',
       headerName: 'Indent Ref',
       flex: 1,
+      valueGetter: (value, row) => {
+        return row?.indentRef || row?.indent_ref || '';
+      },
     },
 
     {
@@ -117,9 +124,8 @@ const POListPage = () => {
       flex: 1,
 
       valueGetter: (value, row) => {
-        return row?.deliveryDate
-          ? formatDate(row.deliveryDate)
-          : '';
+        const d = row?.deliveryDate || row?.delivery_date;
+        return d ? formatDate(d) : '';
       },
     },
 
@@ -129,9 +135,8 @@ const POListPage = () => {
       flex: 1,
 
       valueGetter: (value, row) => {
-        return row?.totalAmount != null
-          ? formatCurrency(row.totalAmount)
-          : '';
+        const amt = row?.totalAmount != null ? row.totalAmount : row?.total_amount;
+        return amt != null ? formatCurrency(amt) : '';
       },
     },
 

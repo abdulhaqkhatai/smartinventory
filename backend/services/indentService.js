@@ -21,6 +21,15 @@ const fallbackIndents = [
 
 const getFallbackIndents = () => fallbackIndents;
 
+const parseIndentItems = (indent) => {
+  if (!indent) return indent;
+  
+  return {
+    ...indent,
+    items: typeof indent.items === 'string' ? JSON.parse(indent.items || '[]') : (indent.items || [])
+  };
+};
+
 const applyIndentFilters = (rows, filters = {}) => {
   let result = [...rows];
 
@@ -56,7 +65,7 @@ export const getAllIndents = async (filters = {}, limit = 20, offset = 0) => {
     values.push(parseInt(limit) || 20, parseInt(offset) || 0);
 
     const [indents] = await db.query(query, values);
-    return indents;
+    return indents.map(parseIndentItems);
   } catch (error) {
     console.warn('Database error fetching indents, using fallback data:', error.message);
     const rows = applyIndentFilters(getFallbackIndents(), filters);
@@ -96,7 +105,7 @@ export const getIndentById = async (id) => {
       'SELECT * FROM indents WHERE id = ?',
       [id]
     );
-    return indents[0] || null;
+    return indents[0] ? parseIndentItems(indents[0]) : null;
   } catch (error) {
     return getFallbackIndents().find((item) => item.id === Number(id)) || null;
   }
@@ -105,14 +114,15 @@ export const getIndentById = async (id) => {
 // Create new indent
 export const createIndent = async (indentData) => {
   try {
-    const { requestedBy, department, items, remarks } = indentData;
+    const { requestedBy, department, items, remarks, status } = indentData;
     const code = await generateCode('IND');
     const date = new Date().toISOString().split('T')[0];
+    const finalStatus = status ? status.toLowerCase() : 'draft';
 
     const [result] = await db.query(
       `INSERT INTO indents (code, requested_by, department, date, status, items, remarks)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [code, requestedBy, department, date, 'draft', JSON.stringify(items), remarks || null]
+      [code, requestedBy, department, date, finalStatus, JSON.stringify(items), remarks || null]
     );
 
     return getIndentById(result.insertId);
@@ -125,7 +135,7 @@ export const createIndent = async (indentData) => {
       requested_by: indentData.requestedBy,
       department: indentData.department,
       date,
-      status: 'draft',
+      status: indentData.status ? indentData.status.toLowerCase() : 'draft',
       items: indentData.items || [],
       remarks: indentData.remarks || null,
       approved_by: null,

@@ -53,7 +53,7 @@ const IndentListPage = () => {
     }
 
     return indents.filter(
-      (item) => item.status === status
+      (item) => String(item.status).toLowerCase() === status.toLowerCase()
     ).length;
   };
 
@@ -61,7 +61,7 @@ const IndentListPage = () => {
     filter === 'All'
       ? indents
       : indents.filter(
-          (item) => item.status === filter
+          (item) => String(item.status).toLowerCase() === filter.toLowerCase()
         );
 
   const columns = [
@@ -69,12 +69,18 @@ const IndentListPage = () => {
       field: 'indentCode',
       headerName: 'Indent Code',
       flex: 1,
+      valueGetter: (value, row) => {
+        return row?.indentCode || row?.code || '';
+      },
     },
 
     {
       field: 'requestedBy',
       headerName: 'Requested By',
       flex: 1,
+      valueGetter: (value, row) => {
+        return row?.requestedBy || row?.requested_by || '';
+      },
     },
 
     {

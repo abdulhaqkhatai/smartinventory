@@ -21,7 +21,7 @@ const IndentDetailPage = () => {
   const { enqueueSnackbar } = useSnackbar();
   
   const { indents } = useSelector(state => state.indents);
-  const indent = indents.find(i => i.id === id);
+  const indent = indents.find(i => String(i.id) === String(id));
   
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -31,7 +31,7 @@ const IndentDetailPage = () => {
   }
 
   const handleApprove = () => {
-    dispatch(updateIndentStatus({ id, status: 'Approved', approvedBy: 'Manager User' }));
+    dispatch(updateIndentStatus({ id, status: 'approved', approvedBy: 'Manager User' }));
     enqueueSnackbar('Indent Approved', { variant: 'success' });
   };
 
@@ -40,7 +40,7 @@ const IndentDetailPage = () => {
       enqueueSnackbar('Please provide a reason for rejection', { variant: 'error' });
       return;
     }
-    dispatch(updateIndentStatus({ id, status: 'Rejected', rejectionReason: rejectReason }));
+    dispatch(updateIndentStatus({ id, status: 'rejected', rejectionReason: rejectReason }));
     setRejectDialogOpen(false);
     enqueueSnackbar('Indent Rejected', { variant: 'warning' });
   };
@@ -105,7 +105,7 @@ const IndentDetailPage = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Item Code</TableCell>
+                  <TableCell>Item ID</TableCell>
                   <TableCell>Item Name</TableCell>
                   <TableCell>Unit</TableCell>
                   <TableCell align="right">Quantity</TableCell>
@@ -113,22 +113,30 @@ const IndentDetailPage = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {indent.items?.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{item.code}</TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.unit}</TableCell>
-                    <TableCell align="right">{item.quantity}</TableCell>
-                    <TableCell>{item.remarks}</TableCell>
+                {indent.items && indent.items.length > 0 ? (
+                  indent.items.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{item.itemId || item.id || '-'}</TableCell>
+                      <TableCell>{item.itemName || item.name || '-'}</TableCell>
+                      <TableCell>{item.unit || '-'}</TableCell>
+                      <TableCell align="right">{item.quantity || 0}</TableCell>
+                      <TableCell>{item.remarks || '-'}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">
+                      <Typography color="textSecondary">No items found</Typography>
+                    </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </TableContainer>
         </CardContent>
       </Card>
 
-      {indent.status === 'Submitted' && (
+      {String(indent.status).toLowerCase() === 'submitted' && (
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
           <Button 
             variant="outlined" 

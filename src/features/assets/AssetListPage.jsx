@@ -28,9 +28,11 @@ const AssetListPage = () => {
   const { assets } = useSelector((state) => state.assets);
   const { user } = useSelector((state) => state.auth);
 
-  const isAdmin = user?.role === 'Admin';
-  const isStoreManager = user?.role === 'Store Manager';
-  const isEmployee = user?.role === 'Employee';
+  const userRole = (user?.role || '').toLowerCase();
+  const isAdmin = userRole === 'admin';
+  const isStoreManager = userRole === 'store_manager' || userRole === 'store manager';
+  const isEmployee = userRole === 'employee';
+  const isPurchaseManager = userRole === 'purchase_manager' || userRole === 'purchase manager';
   const canAddEdit = isAdmin || isStoreManager;
   const canDelete = isAdmin;
 
@@ -78,7 +80,7 @@ const AssetListPage = () => {
                      try {
                         const parsed = JSON.parse(notes);
                         assignedTo = parsed.issuedTo;
-                     } catch(e) {}
+                     } catch {}
                   }
 
                   department = issue.department || issue.department_name || "";
@@ -86,7 +88,7 @@ const AssetListPage = () => {
                      try {
                         const parsed = JSON.parse(notes);
                         department = parsed.department;
-                     } catch(e) {}
+                     } catch {}
                   }
                }
 
@@ -206,7 +208,7 @@ const AssetListPage = () => {
             </IconButton>
           </Tooltip>
           {canAddEdit && (
-            <Tooltip title="Edit Asset">
+            <Tooltip title="Edit">
               <IconButton
                 size="small"
                 color="primary"
@@ -239,8 +241,22 @@ const AssetListPage = () => {
 
   const filteredAssets = assets.filter((asset) => {
     // Role based filtering
-    if (isEmployee && asset.assignedTo !== user?.name) {
-      return false;
+    if (isEmployee) {
+      const assigned = (asset.assignedTo || asset.assigned_to || '').toLowerCase();
+      const uName = (user?.name || '').toLowerCase();
+      const uUser = (user?.username || '').toLowerCase();
+      if (!assigned.includes(uName) && !assigned.includes(uUser)) {
+        return false;
+      }
+    }
+    
+    if (isStoreManager) {
+      const userLoc = (user?.location || 'General').toLowerCase();
+      const assetLoc = (asset.location || 'General').toLowerCase();
+      // Only filter out if both are defined and they don't match
+      if (userLoc !== 'general' && assetLoc !== 'general' && userLoc !== assetLoc) {
+        return false;
+      }
     }
 
     const matchesSearch =

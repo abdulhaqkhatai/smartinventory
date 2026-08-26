@@ -18,7 +18,8 @@ import SendIcon from '@mui/icons-material/Send';
 import { useSnackbar } from 'notistack';
 import { addIndent, updateIndent } from './indentsSlice';
 import { mockItems } from '../../services/mockData';
-import { generateId } from '../../utils/helpers';
+import { generateId, formatDate } from '../../utils/helpers';
+import api from '../../services/api';
 import dayjs from 'dayjs';
 
 const schema = yup.object().shape({
@@ -41,7 +42,7 @@ const IndentFormPage = () => {
   const { indents } = useSelector(state => state.indents);
 
   const isEdit = Boolean(id);
-  const existingIndent = isEdit ? indents.find(i => i.id === id) : null;
+  const existingIndent = isEdit ? indents.find(i => String(i.id) === String(id)) : null;
 
   const { control, handleSubmit, formState: { errors }, watch } = useForm({
     resolver: yupResolver(schema),
@@ -57,17 +58,17 @@ const IndentFormPage = () => {
     name: 'items'
   });
 
-  const onSubmit = (data, status) => {
+  const { user } = useSelector(state => state.auth);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const onSubmit = async (data, status) => {
     const payload = {
-      id: isEdit ? existingIndent.id : generateId('IND'),
-      indentCode: isEdit ? existingIndent.indentCode : generateId('IND'),
-      date: isEdit ? existingIndent.date : new Date().toISOString(),
-      requestedBy: existingIndent?.requestedBy || 'Current User', // Mock user
+      requestedBy: user?.name || user?.username || 'Current User',
       department: data.department,
       remarks: data.remarks,
       items: data.items.map(i => ({
-        id: i.item.id,
-        name: i.item.name,
+        itemId: i.item.id || 1, // Fallback to 1 if no id
+        itemName: i.item.name,
         code: i.item.code,
         unit: i.item.unit,
         quantity: i.quantity,
@@ -76,14 +77,37 @@ const IndentFormPage = () => {
       status: status
     };
 
-    if (isEdit) {
-      dispatch(updateIndent(payload));
-      enqueueSnackbar('Indent updated successfully', { variant: 'success' });
-    } else {
-      dispatch(addIndent(payload));
-      enqueueSnackbar('Indent created successfully', { variant: 'success' });
+    try {
+      setIsSubmitting(true);
+      if (isEdit) {
+        const response = await api.put(`/indents/${existingIndent.id}`, payload);
+        const updatedIndent = response?.data?.data || response?.data;
+        dispatch(updateIndent(updatedIndent));
+        enqueueSnackbar('Indent updated successfully', { variant: 'success' });
+      } else {
+        const response = await api.post('/indents', payload);
+        const createdIndent = response?.data?.data || response?.data;
+        
+        const newIndent = {
+          id: createdIndent.id || generateId('IND'),
+          indentCode: createdIndent.code || generateId('IND'),
+          date: createdIndent.date || new Date().toISOString(),
+          requestedBy: createdIndent.requested_by || payload.requestedBy,
+          department: createdIndent.department || payload.department,
+          remarks: createdIndent.remarks || payload.remarks,
+          items: typeof createdIndent.items === 'string' ? JSON.parse(createdIndent.items) : (createdIndent.items || payload.items),
+          status: createdIndent.status || status
+        };
+
+        dispatch(addIndent(newIndent));
+        enqueueSnackbar('Indent created successfully', { variant: 'success' });
+      }
+      navigate('/indents');
+    } catch (error) {
+      enqueueSnackbar(error?.response?.data?.message || error.message || 'Failed to save Indent', { variant: 'error' });
+    } finally {
+      setIsSubmitting(false);
     }
-    navigate('/indents');
   };
 
   return (
@@ -221,14 +245,14 @@ const IndentFormPage = () => {
         <Button 
           variant="outlined" 
           startIcon={<SaveIcon />}
-          onClick={handleSubmit((data) => onSubmit(data, 'Draft'))}
+          onClick={handleSubmit((data) => onSubmit(data, 'draft'))}
         >
           Save as Draft
         </Button>
         <Button 
           variant="contained" 
           startIcon={<SendIcon />}
-          onClick={handleSubmit((data) => onSubmit(data, 'Submitted'))}
+          onClick={handleSubmit((data) => onSubmit(data, 'submitted'))}
         >
           Submit
         </Button>

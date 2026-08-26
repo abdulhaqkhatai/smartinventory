@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   Box,
   Card,
@@ -77,6 +78,18 @@ const itemVariants = {
 
 const ReportsPage = () => {
   const navigate = useNavigate();
+  const { user } = useSelector(state => state.auth);
+  
+  const userRole = (user?.role || '').toLowerCase().trim();
+  
+  const filteredReports = reportsList.filter(report => {
+    if (userRole === 'admin') return true;
+    if (userRole === 'store_manager' || userRole === 'store manager') return true; 
+    if (userRole === 'purchase_manager' || userRole === 'purchase manager') return true; 
+    
+    // For employee or any unrecognized role, show limited reports just in case
+    return ['asset', 'issue-return'].includes(report.type);
+  });
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
@@ -90,7 +103,7 @@ const ReportsPage = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {reportsList.map((report) => (
+        {filteredReports.map((report) => (
           <Grid size={{ xs: 12, sm: 6, md: 4 }} key={report.type}>
             <motion.div variants={itemVariants}>
               <Card

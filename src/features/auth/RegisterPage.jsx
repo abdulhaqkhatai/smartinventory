@@ -5,14 +5,13 @@ import {
   Box,
   Card,
   CardContent,
-  TextField,
+  TextField, MenuItem,
   Button,
   Typography,
   InputAdornment,
   IconButton,
   Alert,
   CircularProgress,
-  Chip,
   Link,
 } from '@mui/material';
 import {
@@ -20,41 +19,41 @@ import {
   VisibilityOff,
   Email,
   Lock,
+  Person,
   Inventory2,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { performLogin, clearError } from './authSlice';
+import { performRegister, clearError } from './authSlice';
 
-const LoginPage = () => {
+const RegisterPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
+  const { loading, error } = useSelector((state) => state.auth);
 
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('Employee');
   const [showPassword, setShowPassword] = useState(false);
-
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
+  const [successMsg, setSuccessMsg] = useState('');
 
   React.useEffect(() => {
     return () => dispatch(clearError());
   }, [dispatch]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    dispatch(performLogin(username, password));
+    setSuccessMsg('');
+    try {
+      await dispatch(performRegister({username, email, password, role}));
+      setSuccessMsg('Account created successfully! Redirecting to login...');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+    } catch (err) {
+      // Error is handled in redux state
+    }
   };
-
-  const demoAccounts = [
-    { role: 'Admin', username: 'admin' },
-    { role: 'Store Manager', username: 'store_manager' },
-    { role: 'Purchase Manager', username: 'purchase_manager' },
-    { role: 'Employee', username: 'employee' },
-  ];
 
   return (
     <Box
@@ -65,7 +64,7 @@ const LoginPage = () => {
         justifyContent: 'center',
         background: (theme) =>
           theme.palette.mode === 'dark'
-            ? 'radial-gradient(ellipse at 20% 50%, #0D2137 0%, #0A1929 50%, #071322 100%)'
+            ? 'radial-gradient(ellipse at 80% 50%, #0D2137 0%, #0A1929 50%, #071322 100%)'
             : 'linear-gradient(135deg, #E0F7FA 0%, #F0F4F8 50%, #E8EAF6 100%)',
         position: 'relative',
         overflow: 'hidden',
@@ -83,11 +82,11 @@ const LoginPage = () => {
         sx={{
           position: 'absolute',
           top: '10%',
-          left: '10%',
+          right: '10%',
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0, 191, 166, 0.3) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(124, 77, 255, 0.25) 0%, transparent 70%)',
           filter: 'blur(60px)',
           pointerEvents: 'none',
         }}
@@ -102,11 +101,11 @@ const LoginPage = () => {
         sx={{
           position: 'absolute',
           bottom: '10%',
-          right: '10%',
+          left: '10%',
           width: 350,
           height: 350,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(124, 77, 255, 0.25) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(0, 191, 166, 0.3) 0%, transparent 70%)',
           filter: 'blur(60px)',
           pointerEvents: 'none',
         }}
@@ -151,15 +150,25 @@ const LoginPage = () => {
                 </Box>
               </motion.div>
               <Typography variant="h4" fontWeight={700} gutterBottom>
-                Smart Inventory
+                Join Us
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Store Management System
+                Create a new Smart Inventory account
               </Typography>
             </Box>
 
-            {/* Error Alert */}
-            {error && (
+            {/* Success/Error Alerts */}
+            {successMsg && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+              >
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  {successMsg}
+                </Alert>
+              </motion.div>
+            )}
+            {error && !successMsg && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -170,7 +179,7 @@ const LoginPage = () => {
               </motion.div>
             )}
 
-            {/* Login Form */}
+            {/* Registration Form */}
             <Box component="form" onSubmit={handleSubmit}>
               <TextField
                 fullWidth
@@ -183,12 +192,44 @@ const LoginPage = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
+                      <Person sx={{ color: 'text.secondary', fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                }}
+                placeholder="johndoe"
+              />
+              <TextField
+                fullWidth
+                label="Email Address"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
                       <Email sx={{ color: 'text.secondary', fontSize: 20 }} />
                     </InputAdornment>
                   ),
                 }}
-                placeholder="admin"
+                placeholder="john@example.com"
               />
+              
+              <TextField
+                select
+                fullWidth
+                label="Role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                sx={{ mb: 2 }}
+              >
+                <MenuItem value="Admin">Admin</MenuItem>
+                <MenuItem value="Employee">Employee</MenuItem>
+                <MenuItem value="Store Manager">Store Manager</MenuItem>
+                <MenuItem value="Purchase Manager">Purchase Manager</MenuItem>
+              </TextField>
+
               <TextField
                 fullWidth
                 label="Password"
@@ -215,7 +256,7 @@ const LoginPage = () => {
                     </InputAdornment>
                   ),
                 }}
-                placeholder="admin123"
+                placeholder="Min 8 characters"
               />
 
               <Button
@@ -223,9 +264,10 @@ const LoginPage = () => {
                 variant="contained"
                 fullWidth
                 size="large"
-                disabled={loading}
+                disabled={loading || !!successMsg}
                 sx={{
                   py: 1.5,
+                  mb: 3,
                   fontSize: '1rem',
                   background: 'linear-gradient(135deg, #00BFA6 0%, #00897B 100%)',
                   '&:hover': {
@@ -236,17 +278,16 @@ const LoginPage = () => {
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: '#fff' }} />
                 ) : (
-                  'Sign In'
+                  'Sign Up'
                 )}
               </Button>
-            </Box>
 
-              <Box sx={{ mt: 3, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary" mb={2}>
-                  Don't have an account?{' '}
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Already have an account?{' '}
                   <Link
                     component={RouterLink}
-                    to="/register"
+                    to="/login"
                     sx={{
                       fontWeight: 600,
                       color: 'primary.main',
@@ -254,41 +295,11 @@ const LoginPage = () => {
                       '&:hover': { textDecoration: 'underline' },
                     }}
                   >
-                    Sign Up
+                    Sign In
                   </Link>
                 </Typography>
-                
-                <Typography variant="caption" color="text.secondary" display="block" textAlign="center" mb={1}>
-                  Demo Accounts (password: admin123)
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, justifyContent: 'center' }}>
-                  {demoAccounts.map((account) => (
-                    <Chip
-                      key={account.username}
-                      label={account.role}
-                      size="small"
-                      variant="outlined"
-                      onClick={() => {
-                        setUsername(account.username);
-                        setPassword('admin123');
-                      }}
-                      sx={{
-                        cursor: 'pointer',
-                        fontSize: '0.7rem',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          borderColor: 'primary.main',
-                          color: 'primary.main',
-                          backgroundColor: (theme) =>
-                            theme.palette.mode === 'dark'
-                              ? 'rgba(0, 191, 166, 0.08)'
-                              : 'rgba(0, 137, 123, 0.08)',
-                        },
-                      }}
-                    />
-                  ))}
-                </Box>
               </Box>
+            </Box>
           </CardContent>
         </Card>
       </motion.div>
@@ -296,4 +307,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;

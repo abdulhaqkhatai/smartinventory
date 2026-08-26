@@ -22,7 +22,7 @@ import { motion } from 'framer-motion';
 import { useSnackbar } from 'notistack';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 import { mockUsers } from '../../services/mockData';
-import { assignAsset, unassignAsset, updateAsset, addAsset } from './assetsSlice';
+import { assignAsset, unassignAsset, addAsset } from './assetsSlice';
 import api from '../../services/api';
 
 const AssetDetailPage = () => {
@@ -75,7 +75,7 @@ const AssetDetailPage = () => {
                    try {
                       const parsed = JSON.parse(notes);
                       assignedTo = parsed.issuedTo;
-                   } catch(e) {}
+                   } catch {}
                 }
 
                 fetchedDepartment = issue.department || issue.department_name || "";
@@ -83,7 +83,7 @@ const AssetDetailPage = () => {
                    try {
                       const parsed = JSON.parse(notes);
                       fetchedDepartment = parsed.department;
-                   } catch(e) {}
+                   } catch {}
                 }
               }
             }
@@ -139,7 +139,7 @@ const AssetDetailPage = () => {
       
       await api.post('/issues', {
         asset_id: asset.id,
-        user_id: 1,
+        user_id: user?.id || 1,
         issue_date: new Date().toISOString().split('T')[0] + ' 00:00:00',
         issue_condition: 'Good',
         notes: JSON.stringify({
@@ -166,7 +166,7 @@ const AssetDetailPage = () => {
 
         await api.post('/returns', {
           asset_id: asset.id,
-          user_id: 1,
+          user_id: user?.id || 1,
           return_date: new Date().toISOString().split('T')[0] + ' 00:00:00',
           return_condition: 'Good',
           notes: JSON.stringify({

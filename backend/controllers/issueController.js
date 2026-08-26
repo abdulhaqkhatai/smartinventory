@@ -2,6 +2,7 @@ import {
   createIssue,
   getAllIssues,
   getIssueById,
+  updateIssueStatus,
 } from "../services/issueService.js";
 
 
@@ -34,6 +35,9 @@ const createIssueController = async (req, res) => {
       });
     }
 
+    const userRole = (req.userRole || '').toLowerCase();
+    const status = userRole === 'employee' ? 'Pending' : 'Approved';
+
     const issue = await createIssue({
       asset_id,
       user_id,
@@ -41,6 +45,7 @@ const createIssueController = async (req, res) => {
       expected_return_date,
       issue_condition,
       notes,
+      status,
     });
 
     res.status(201).json({
@@ -119,9 +124,35 @@ const getIssueByIdController = async (req, res) => {
   }
 };
 
+// ==========================================
+// UPDATE ISSUE STATUS
+// ==========================================
+
+const updateIssueStatusController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!status || !['Approved', 'Rejected'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const updatedIssue = await updateIssueStatus(id, status);
+    res.json({ success: true, data: updatedIssue });
+  } catch (error) {
+    console.error("Update Issue Status Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update status",
+      error: error.message,
+    });
+  }
+};
+
 
 export {
   createIssueController,
   getAllIssuesController,
   getIssueByIdController,
+  updateIssueStatusController,
 };

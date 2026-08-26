@@ -108,25 +108,54 @@ const IssueReturnPage = () => {
 
   const { user } = useSelector((state) => state.auth);
 
-  const isAdmin = user?.role === 'Admin';
-  const isStoreManager = user?.role === 'Store Manager';
-  const isEmployee = user?.role === 'Employee';
+  const userRole = (user?.role || '').toLowerCase();
+  const isAdmin = userRole === 'admin';
+  const isStoreManager = userRole === 'store_manager' || userRole === 'store manager';
+  const isEmployee = userRole === 'employee';
+  
+  // Only Admin and Store Manager get the main Issue/Return buttons
   const canIssueReturn = isAdmin || isStoreManager;
 
   const filteredIssues = useMemo(() => {
     if (isEmployee) {
-      return issues.filter(i => i.issuedTo === user?.name);
+      // Lenient filtering for employee
+      return issues.filter(i => {
+        const issued = (i.issuedTo || i.issued_to || i.employee || i.employee_name || i.user || '').toLowerCase();
+        return issued.includes((user?.name || '').toLowerCase()) || issued.includes((user?.username || '').toLowerCase());
+      });
     }
     return issues;
   }, [issues, isEmployee, user]);
 
   const filteredReturns = useMemo(() => {
     if (isEmployee) {
-      return returns.filter(r => r.returnedBy === user?.name);
+      // Lenient filtering for employee
+      return returns.filter(r => {
+        const returned = (r.returnedBy || r.returned_by || r.employee || '').toLowerCase();
+        return returned.includes((user?.name || '').toLowerCase()) || returned.includes((user?.username || '').toLowerCase());
+      });
     }
     return returns;
   }, [returns, isEmployee, user]);
 
+
+  // -------------------------------------------------------
+  // Handle Status Update
+  // -------------------------------------------------------
+  const handleStatusUpdate = async (type, id, newStatus) => {
+    try {
+      if (type === 'issue') {
+        await api.patch(`/issues/${id}/status`, { status: newStatus });
+      } else {
+        await api.patch(`/returns/${id}/status`, { status: newStatus });
+      }
+      // Reload page for simplicity to fetch fresh data
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to update status", error);
+      alert("Failed to update status");
+    }
+  };
 
   // -------------------------------------------------------
   // Load Issues & Returns
@@ -449,8 +478,39 @@ const IssueReturnPage = () => {
           </span>
         ),
       },
+      {
+        field: "status",
+        headerName: "Status",
+        flex: 1,
+        minWidth: 120,
+        renderCell: (params) => (
+          <span style={{
+            color: params.value === 'Pending' ? 'orange' : params.value === 'Rejected' ? 'red' : 'green',
+            fontWeight: 'bold'
+          }}>
+            {params.value}
+          </span>
+        ),
+      },
+      {
+        field: "actions",
+        headerName: "Actions",
+        flex: 1.5,
+        minWidth: 180,
+        renderCell: (params) => {
+          if (params.row.status === 'Pending' && (isAdmin || isStoreManager)) {
+            return (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button size="small" variant="contained" color="success" onClick={() => handleStatusUpdate('issue', params.row.id, 'Approved')}>Approve</Button>
+                <Button size="small" variant="contained" color="error" onClick={() => handleStatusUpdate('issue', params.row.id, 'Rejected')}>Reject</Button>
+              </Box>
+            );
+          }
+          return null;
+        },
+      }
     ],
-    []
+    [isAdmin, isStoreManager]
   );
 
 
@@ -540,8 +600,39 @@ const IssueReturnPage = () => {
           </span>
         ),
       },
+      {
+        field: "status",
+        headerName: "Status",
+        flex: 1,
+        minWidth: 120,
+        renderCell: (params) => (
+          <span style={{
+            color: params.value === 'Pending' ? 'orange' : params.value === 'Rejected' ? 'red' : 'green',
+            fontWeight: 'bold'
+          }}>
+            {params.value}
+          </span>
+        ),
+      },
+      {
+        field: "actions",
+        headerName: "Actions",
+        flex: 1.5,
+        minWidth: 180,
+        renderCell: (params) => {
+          if (params.row.status === 'Pending' && (isAdmin || isStoreManager)) {
+            return (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button size="small" variant="contained" color="success" onClick={() => handleStatusUpdate('return', params.row.id, 'Approved')}>Approve</Button>
+                <Button size="small" variant="contained" color="error" onClick={() => handleStatusUpdate('return', params.row.id, 'Rejected')}>Reject</Button>
+              </Box>
+            );
+          }
+          return null;
+        },
+      }
     ],
-    []
+    [isAdmin, isStoreManager]
   );
 
 
